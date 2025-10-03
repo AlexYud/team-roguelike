@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://bey6hvqaohwy0"]
+
+[ext_resource type="Texture2D" uid="uid://qyfjsxp64as8" path="res://Assets/edf46191d819ff98e8a19c1dd09c9f48.png" id="1_4nkk3"]
+[ext_resource type="Script" uid="uid://chg4p2vhn11yp" path="res://Scripts/warrior.gd" id="1_fdgla"]
+
+[node name="Warrior" type="Node2D"]
+script = ExtResource("1_fdgla")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("1_4nkk3")

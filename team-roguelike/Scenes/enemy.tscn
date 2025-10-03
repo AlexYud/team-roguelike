@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://chrf14sfnxran"]
+
+[ext_resource type="Script" uid="uid://ch4nqk1ngdreb" path="res://Scripts/enemy.gd" id="1_1f0kj"]
+[ext_resource type="Texture2D" uid="uid://drlc552la272e" path="res://Assets/pixel-art-zombie-character-3-png.png" id="2_1f0kj"]
+
+[node name="Enemy" type="Node2D"]
+script = ExtResource("1_1f0kj")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.1, 0.1)
+texture = ExtResource("2_1f0kj")

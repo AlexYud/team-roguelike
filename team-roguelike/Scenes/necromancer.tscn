@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://by3ba3x1rnh8y"]
+
+[ext_resource type="Script" uid="uid://dxqyslb8n6bfe" path="res://Scripts/necromancer.gd" id="1_ak3cs"]
+[ext_resource type="Texture2D" uid="uid://rgq3ebqehfp" path="res://Assets/pixel-art-hunterwith-rifle-taybo5pbsfmzxoj2.png" id="1_v3k6l"]
+
+[node name="Necromancer" type="Node2D"]
+script = ExtResource("1_ak3cs")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("1_v3k6l")
