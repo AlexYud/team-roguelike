@@ -28,6 +28,7 @@ func spawn_selected_characters():
 	var i = 0
 	for char_name in Global.selected_characters:
 		var path = "res://Scenes/Characters/%s.tscn" % char_name
+		print(path)
 		var char_scene = load(path)
 		if char_scene:
 			var character = char_scene.instantiate()

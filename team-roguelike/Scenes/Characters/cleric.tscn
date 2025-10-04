@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://c4v0a5uo6kbqd"]
+[gd_scene load_steps=17 format=3 uid="uid://c5x1qqxvx4dxv"]
 
 [ext_resource type="Script" uid="uid://dnxymqj61owwy" path="res://Scripts/cleric.gd" id="1_56820"]
 [ext_resource type="Texture2D" uid="uid://dm232xsevhl32" path="res://Assets/demonv23_4.png" id="2_56820"]

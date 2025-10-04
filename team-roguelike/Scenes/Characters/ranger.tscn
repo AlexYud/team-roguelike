@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3 uid="uid://dnwxee46dn7yq"]
+[gd_scene load_steps=25 format=3 uid="uid://d3dlbo1s7w0o0"]
 
 [ext_resource type="Script" uid="uid://dthwx42awybox" path="res://Scripts/ranger.gd" id="1_txnr6"]
 [ext_resource type="Texture2D" uid="uid://4ytnu7eyw2vg" path="res://Assets/Sprites/Characters/Labuba/demonv23_4-Sheet.png" id="2_4mesp"]

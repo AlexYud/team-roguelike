@@ -32,8 +32,7 @@ layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
 toggle_mode = true
-text = "Ranger
-"
+text = "Ranger"
 
 [node name="WarriorButton" type="Button" parent="MarginContainer/CharacterGrid"]
 layout_mode = 2
