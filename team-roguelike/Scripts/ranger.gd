@@ -40,6 +40,8 @@ var sprite: Sprite2D
 var original_color: Color = Color.WHITE
 var is_moving: bool = false
 var last_position: Vector2
+var idle_frames: int = 0
+var idle_threshold: int = 150 
 
 func _ready():
 	add_to_group("characters")
@@ -48,7 +50,7 @@ func _ready():
 	arrow_timer = arrow_cooldown
 	multi_shot_timer = multi_shot_cooldown
 	rain_timer = rain_of_arrows_cooldown
-	anim_sprite.play("breathe")
+	anim_sprite.play("idle")
 	last_position = position
 
 func setup_visuals():
@@ -136,11 +138,18 @@ func _process(delta):
 
 func update_animation():
 	if is_moving:
+		idle_frames = 0
 		if anim_sprite.animation != "walking":
 			anim_sprite.play("walking")
 	else:
-		if anim_sprite.animation != "breathe":
-			anim_sprite.play("breathe")
+		idle_frames += 1
+		print(idle_frames)
+		if idle_frames < idle_threshold:
+			if anim_sprite.animation != "idle":
+				anim_sprite.play("idle")
+		else:
+			if anim_sprite.animation != "breathe":
+				anim_sprite.play("breathe")
 
 func update_sprite_flip():
 	# Flip sprite based on target rotation or movement direction
