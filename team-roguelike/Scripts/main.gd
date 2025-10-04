@@ -17,7 +17,9 @@ func spawn_party_characters():
 		if char_scene:
 			var character: Node2D = char_scene.instantiate()
 			character.add_to_group("characters")
+			character.set_meta("char_name", char_name)
 			party.append(character)
+			Global.init_character_stats(char_name)
 		else:
 			push_error("Could not load character scene: " + path)
 
@@ -67,7 +69,42 @@ func get_enemies_for_room(idx: int) -> int:
 func _process(delta):
 	var chars := get_tree().get_nodes_in_group("characters")
 	if chars.size() == 0:
-		get_tree().change_scene_to_file(lobby_scene_path)
+		show_game_over()
+
+func show_game_over():
+	var game_over_scene = load("res://Scenes/GameOver.tscn")
+	var game_over = game_over_scene.instantiate()
+	add_child(game_over)
 
 func _on_room_cleared():
+	var buff_scene = load("res://Scenes/BuffSelection.tscn")
+	var buff_selection = buff_scene.instantiate()
+	add_child(buff_selection)
+	buff_selection.connect("buff_selected", Callable(self, "_on_buff_selected"))
+
+func _on_buff_selected(buff_name: String):
+	apply_buff_to_party(buff_name)
 	start_next_room()
+
+func apply_buff_to_party(buff_name: String):
+	for character in party:
+		if not is_instance_valid(character):
+			continue
+			
+		match buff_name:
+			"Attack Up":
+				if character.get("damage") != null:
+					character.damage += 10
+			"Speed Up":
+				if character.get("speed") != null:
+					character.speed *= 1.2
+			"Health Up":
+				if character.get("max_health") != null:
+					character.max_health += 50
+					character.health += 50
+			"Attack Speed":
+				if character.get("attack_cooldown") != null:
+					character.attack_cooldown *= 0.8
+			"Range Up":
+				if character.get("attack_range") != null:
+					character.attack_range *= 1.3

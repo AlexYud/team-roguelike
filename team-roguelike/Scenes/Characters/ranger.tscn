@@ -1,9 +1,225 @@
-[gd_scene load_steps=25 format=3 uid="uid://d3dlbo1s7w0o0"]
+[gd_scene load_steps=25 format=3 uid="uid://c0nifk6to1vhq"]
 
-[ext_resource type="Script" uid="uid://dthwx42awybox" path="res://Scripts/ranger.gd" id="1_txnr6"]
 [ext_resource type="Texture2D" uid="uid://4ytnu7eyw2vg" path="res://Assets/Sprites/Characters/Labuba/demonv23_4-Sheet.png" id="2_4mesp"]
 [ext_resource type="Texture2D" uid="uid://ddw3iw1fdiued" path="res://Assets/Sprites/Characters/Labuba/demonv23_4-Idle_Sheet.png" id="3_kyylj"]
 [ext_resource type="Texture2D" uid="uid://cg5taxhshspaf" path="res://Assets/Sprites/Characters/Labuba/demonv23_4-Walking_Sheet.png" id="4_kyylj"]
+
+[sub_resource type="GDScript" id="GDScript_7ekdn"]
+script/source = "extends \"res://Scripts/base_character.gd\"
+
+@export var arrow_cooldown: float = 2.0
+@export var arrow_damage: int = 20
+@export var multi_shot_cooldown: float = 5.0
+@export var multi_shot_damage: int = 15
+@export var rain_of_arrows_cooldown: float = 12.0
+@export var rain_damage: int = 30
+@export var rain_count: int = 8
+@export var kite_shot_chance: float = 0.7
+
+@onready var anim_sprite: AnimatedSprite2D = $AnimatedSprite2D
+
+var arrow_timer: float = 0.0
+var multi_shot_timer: float = 0.0
+var rain_timer: float = 0.0
+var is_moving: bool = false
+var last_position: Vector2
+var idle_frames: int = 0
+var idle_threshold: int = 150
+
+func character_ready():
+	arrow_timer = arrow_cooldown
+	multi_shot_timer = multi_shot_cooldown
+	rain_timer = rain_of_arrows_cooldown
+	speed = 300
+	attack_range = 200
+	attack_cooldown = 0.8
+	damage = 8
+	health = 40
+	max_health = 40
+	safe_distance = 150
+	retreat_speed_multiplier = 1.5
+	anim_sprite.play(\"idle\")
+	last_position = position
+
+func get_default_color() -> Color:
+	return Color.BROWN
+
+func update_ability_timers(delta: float):
+	arrow_timer -= delta
+	multi_shot_timer -= delta
+	rain_timer -= delta
+
+func _process(delta):
+	var velocity = (position - last_position) / delta if delta > 0 else Vector2.ZERO
+	is_moving = velocity.length() > 0
+	last_position = position
+	
+	update_animation()
+	update_sprite_flip()
+	
+	super._process(delta)
+
+func update_animation():
+	if is_moving:
+		idle_frames = 0
+		if anim_sprite.animation != \"walking\":
+			anim_sprite.play(\"walking\")
+	else:
+		idle_frames += 1
+		if idle_frames < idle_threshold:
+			if anim_sprite.animation != \"idle\":
+				anim_sprite.play(\"idle\")
+		else:
+			if anim_sprite.animation != \"breathe\":
+				anim_sprite.play(\"breathe\")
+
+func update_sprite_flip():
+	var facing_angle = target_rotation
+	
+	while facing_angle > PI:
+		facing_angle -= TAU
+	while facing_angle < -PI:
+		facing_angle += TAU
+	
+	if facing_angle > PI / 2 or facing_angle < -PI / 2:
+		anim_sprite.flip_h = true
+	else:
+		anim_sprite.flip_h = false
+
+func get_retreat_color() -> Color:
+	return Color.LIGHT_BLUE
+
+func retreat_action(closest_enemy: Node2D):
+	if arrow_timer <= 0 and randf() < kite_shot_chance:
+		arrow_timer = arrow_cooldown * 1.2
+		shoot_arrow(closest_enemy)
+
+func use_abilities(enemies: Array) -> bool:
+	if rain_timer <= 0 and enemies.size() >= 4:
+		rain_timer = rain_of_arrows_cooldown
+		use_rain_of_arrows()
+		return true
+	elif multi_shot_timer <= 0 and enemies.size() >= 3:
+		multi_shot_timer = multi_shot_cooldown
+		use_multi_shot(enemies)
+		return true
+	elif arrow_timer <= 0:
+		arrow_timer = arrow_cooldown
+		shoot_arrow(target)
+		return true
+	
+	return false
+
+func basic_attack(enemy: Node2D):
+	shoot_arrow(enemy)
+
+func shoot_arrow(enemy: Node2D):
+	var arrow = Arrow.new()
+	arrow.target = enemy
+	arrow.damage = arrow_damage
+	arrow.speed = 450
+	arrow.caster = self
+	
+	var proj_sprite = Sprite2D.new()
+	arrow.add_child(proj_sprite)
+	var img = Image.create(10, 10, false, Image.FORMAT_RGBA8)
+	img.fill(Color.BROWN)
+	proj_sprite.texture = ImageTexture.create_from_image(img)
+	
+	get_parent().add_child(arrow)
+	arrow.global_position = global_position
+
+func use_multi_shot(enemies: Array):
+	var targets = enemies.slice(0, 3)
+	for enemy in targets:
+		if is_instance_valid(enemy):
+			var arrow = Arrow.new()
+			arrow.target = enemy
+			arrow.damage = multi_shot_damage
+			arrow.speed = 500
+			arrow.caster = self
+			
+			var proj_sprite = Sprite2D.new()
+			arrow.add_child(proj_sprite)
+			var img = Image.create(8, 8, false, Image.FORMAT_RGBA8)
+			img.fill(Color.YELLOW)
+			proj_sprite.texture = ImageTexture.create_from_image(img)
+			
+			get_parent().add_child(arrow)
+			arrow.global_position = global_position
+	
+	sprite.modulate = Color.YELLOW
+	await get_tree().create_timer(0.2).timeout
+	if is_instance_valid(self):
+		sprite.modulate = original_color
+
+func use_rain_of_arrows():
+	sprite.modulate = Color.CYAN
+	
+	var enemies = get_tree().get_nodes_in_group(\"enemies\")
+	var valid_enemies = []
+	for enemy in enemies:
+		if is_instance_valid(enemy):
+			valid_enemies.append(enemy)
+	
+	for i in range(rain_count):
+		await get_tree().create_timer(0.15).timeout
+		if valid_enemies.size() == 0:
+			break
+		
+		var random_enemy = valid_enemies[randi() % valid_enemies.size()]
+		if is_instance_valid(random_enemy):
+			spawn_rain_arrow(random_enemy)
+	
+	if is_instance_valid(self):
+		sprite.modulate = original_color
+
+func spawn_rain_arrow(enemy: Node2D):
+	var start_pos = enemy.global_position + Vector2(randf_range(-100, 100), -200)
+	
+	var arrow = Arrow.new()
+	arrow.target = enemy
+	arrow.damage = rain_damage
+	arrow.speed = 600
+	arrow.is_rain_arrow = true
+	arrow.caster = self
+	
+	var proj_sprite = Sprite2D.new()
+	arrow.add_child(proj_sprite)
+	var img = Image.create(12, 12, false, Image.FORMAT_RGBA8)
+	img.fill(Color.CYAN)
+	proj_sprite.texture = ImageTexture.create_from_image(img)
+	
+	get_parent().add_child(arrow)
+	arrow.global_position = start_pos
+
+class Arrow extends Node2D:
+	var target: Node2D = null
+	var damage: int = 20
+	var speed: float = 400
+	var lifetime: float = 3.0
+	var is_rain_arrow: bool = false
+	var caster: Node2D = null
+	
+	func _ready():
+		await get_tree().create_timer(lifetime).timeout
+		if is_instance_valid(self):
+			queue_free()
+	
+	func _process(delta):
+		if not target or not is_instance_valid(target):
+			queue_free()
+			return
+		
+		var direction = (target.global_position - global_position).normalized()
+		global_position += direction * speed * delta
+		look_at(target.global_position)
+		
+		var distance = global_position.distance_to(target.global_position)
+		if distance < 20:
+			if target.has_method(\"take_damage\") and caster:
+				caster.deal_damage_to(target, damage)
+			queue_free()"
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_x072d"]
 atlas = ExtResource("2_4mesp")
@@ -160,7 +376,25 @@ animations = [{
 }]
 
 [node name="Ranger" type="Node2D"]
-script = ExtResource("1_txnr6")
+script = SubResource("GDScript_7ekdn")
+arrow_cooldown = null
+arrow_damage = null
+multi_shot_cooldown = null
+multi_shot_damage = null
+rain_of_arrows_cooldown = null
+rain_damage = null
+rain_count = null
+kite_shot_chance = null
+speed = null
+attack_range = null
+attack_cooldown = null
+damage = null
+health = null
+max_health = null
+wander_radius = null
+safe_distance = null
+retreat_speed_multiplier = null
+reaction_time = null
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(133, 31)

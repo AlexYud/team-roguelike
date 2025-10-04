@@ -33,7 +33,7 @@ layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
 toggle_mode = true
-text = "Ranger"
+text = "Labuba"
 
 [node name="WarriorButton" type="Button" parent="MarginContainer/CharacterGrid"]
 custom_minimum_size = Vector2(0, 100)
@@ -41,7 +41,7 @@ layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
 toggle_mode = true
-text = "Warrior"
+text = "Labuba"
 
 [node name="NecromancerButton" type="Button" parent="MarginContainer/CharacterGrid"]
 custom_minimum_size = Vector2(0, 100)
@@ -49,7 +49,7 @@ layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
 toggle_mode = true
-text = "Necromancer"
+text = "Labuba"
 
 [node name="ClericButton" type="Button" parent="MarginContainer/CharacterGrid"]
 custom_minimum_size = Vector2(0, 100)
@@ -57,7 +57,7 @@ layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
 toggle_mode = true
-text = "Cleric"
+text = "Labuba"
 
 [node name="StartRun" type="Button" parent="."]
 layout_mode = 1
