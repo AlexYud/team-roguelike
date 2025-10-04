@@ -28,6 +28,7 @@ layout_mode = 2
 columns = 4
 
 [node name="RangerButton" type="Button" parent="MarginContainer/CharacterGrid"]
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
@@ -35,6 +36,7 @@ toggle_mode = true
 text = "Ranger"
 
 [node name="WarriorButton" type="Button" parent="MarginContainer/CharacterGrid"]
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
@@ -42,6 +44,7 @@ toggle_mode = true
 text = "Warrior"
 
 [node name="NecromancerButton" type="Button" parent="MarginContainer/CharacterGrid"]
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
@@ -49,6 +52,7 @@ toggle_mode = true
 text = "Necromancer"
 
 [node name="ClericButton" type="Button" parent="MarginContainer/CharacterGrid"]
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
@@ -62,10 +66,10 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -53.0
-offset_top = -248.0
-offset_right = 53.0
-offset_bottom = -196.0
+offset_left = -100.0
+offset_top = -348.0
+offset_right = 100.0
+offset_bottom = -248.0
 grow_horizontal = 2
 grow_vertical = 0
 disabled = true
