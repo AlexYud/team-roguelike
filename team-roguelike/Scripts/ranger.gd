@@ -143,7 +143,6 @@ func update_animation():
 			anim_sprite.play("walking")
 	else:
 		idle_frames += 1
-		print(idle_frames)
 		if idle_frames < idle_threshold:
 			if anim_sprite.animation != "idle":
 				anim_sprite.play("idle")

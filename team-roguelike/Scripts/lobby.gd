@@ -11,7 +11,6 @@ func _ready():
 	start_button.connect("pressed", Callable(self, "_on_start_run_pressed"))
 	start_button.disabled = true
 
-
 func _on_character_pressed(character_name: String):
 	if character_name in selected_characters:
 		selected_characters.erase(character_name)

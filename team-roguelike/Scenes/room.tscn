@@ -1,0 +1,40 @@
+[gd_scene load_steps=4 format=3 uid="uid://l0cxgaxrgha6"]
+
+[ext_resource type="Script" uid="uid://mpr0auhtcga" path="res://Scripts/room.gd" id="1_mbine"]
+[ext_resource type="PackedScene" uid="uid://chrf14sfnxran" path="res://Scenes/enemy.tscn" id="2_lsht4"]
+[ext_resource type="Texture2D" uid="uid://1aube87it6h6" path="res://Assets/Sprites/Maps/Map_1_v2.png" id="3_fr46g"]
+
+[node name="Room" type="Node2D"]
+script = ExtResource("1_mbine")
+enemy_scene = ExtResource("2_lsht4")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(0.75, 0.75)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.54, 0.54)
+texture = ExtResource("3_fr46g")
+
+[node name="MonsterSpawnPoints" type="Node2D" parent="."]
+
+[node name="Marker2D" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(-412, 180)
+
+[node name="Marker2D2" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(384, -180)
+
+[node name="Marker2D3" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(-470, -180)
+
+[node name="Marker2D4" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(384, 155)
+
+[node name="CharacterSpawnPoints" type="Node2D" parent="."]
+
+[node name="Marker2D" type="Marker2D" parent="CharacterSpawnPoints"]
+position = Vector2(-130, 0)
+
+[node name="Marker2D2" type="Marker2D" parent="CharacterSpawnPoints"]
+
+[node name="Marker2D3" type="Marker2D" parent="CharacterSpawnPoints"]
+position = Vector2(130, 0)
