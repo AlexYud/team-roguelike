@@ -8,3 +8,4 @@ script = ExtResource("1_21xkr")
 enemy_scene = ExtResource("2_6bp64")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(0.75, 0.75)
