@@ -3,7 +3,7 @@ extends Node2D
 @export var enemy_scene: PackedScene
 @export var spawn_rate: float = 0.5
 
-# World Events
+# World Events wow
 @export var event_check_interval: float = 15.0
 @export var meteor_shower_duration: float = 8.0
 @export var blood_moon_duration: float = 12.0
