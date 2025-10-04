@@ -10,32 +10,43 @@ extends Node2D
 var spawn_timer: float = 0.0
 var event_timer: float = 0.0
 var characters: Array = []
-
-# Event state
 var current_event: String = "none"
 var event_time_remaining: float = 0.0
 var spawn_rate_modifier: float = 1.0
 var damage_modifier: float = 1.0
-
-# UI
 var event_label: Label
 var event_background: ColorRect
+@onready var spawn_points = $SpawnPoints.get_children() if has_node("SpawnPoints") else []
 
 func _ready():
+	spawn_selected_characters()
 	characters = get_tree().get_nodes_in_group("characters")
 	event_timer = event_check_interval
 	setup_ui()
 
+func spawn_selected_characters():
+	var i = 0
+	for char_name in Global.selected_characters:
+		var path = "res://Scenes/Characters/%s.tscn" % char_name
+		var char_scene = load(path)
+		if char_scene:
+			var character = char_scene.instantiate()
+			if i < spawn_points.size():
+				character.position = spawn_points[i].position
+			else:
+				character.position = Vector2((i - 1) * 150, 0)
+			add_child(character)
+			i += 1
+		else:
+			push_error("Could not load character scene: " + path)
+
 func setup_ui():
-	# Create background panel
 	event_background = ColorRect.new()
 	event_background.size = Vector2(600, 80)
 	event_background.position = Vector2(-300, -350)
 	event_background.color = Color(0, 0, 0, 0.7)
 	event_background.visible = false
 	add_child(event_background)
-	
-	# Create event label
 	event_label = Label.new()
 	event_label.position = Vector2(-290, -340)
 	event_label.size = Vector2(580, 60)
@@ -52,50 +63,39 @@ func _process(delta):
 	spawn_timer -= delta
 	event_timer -= delta
 	event_time_remaining -= delta
-	
-	# Spawn enemies
 	if spawn_timer <= 0:
 		spawn_timer = spawn_rate * spawn_rate_modifier
 		spawn_enemy()
-	
-	# Check for new events
 	if event_timer <= 0 and current_event == "none":
 		event_timer = event_check_interval
 		check_for_event()
-	
-	# Update active event
 	if current_event != "none":
 		update_event(delta)
 		update_event_ui()
-		
 		if event_time_remaining <= 0:
 			end_event()
 
 func check_for_event():
 	var chance = randf()
-	
 	if chance < 0.25:
 		start_meteor_shower()
 	elif chance < 0.5:
 		start_blood_moon()
 	elif chance < 0.75:
 		start_divine_blessing()
-	# 25% chance of no event
 
 func start_meteor_shower():
 	current_event = "meteor_shower"
 	event_time_remaining = meteor_shower_duration
-	spawn_rate_modifier = 0.6  # Slower spawns during meteors
-	
+	spawn_rate_modifier = 0.6
 	show_event_announcement("☄️ METEOR SHOWER ☄️", Color.ORANGE)
 	create_screen_flash(Color.ORANGE)
 
 func start_blood_moon():
 	current_event = "blood_moon"
 	event_time_remaining = blood_moon_duration
-	spawn_rate_modifier = 0.4  # Much faster spawns
-	damage_modifier = 1.5  # Enemies deal more damage
-	
+	spawn_rate_modifier = 0.4
+	damage_modifier = 1.5
 	show_event_announcement("🌙 BLOOD MOON RISES 🌙", Color.DARK_RED)
 	create_screen_flash(Color.RED)
 	apply_blood_moon_effect()
@@ -103,7 +103,6 @@ func start_blood_moon():
 func start_divine_blessing():
 	current_event = "blessing"
 	event_time_remaining = blessing_duration
-	
 	show_event_announcement("✨ DIVINE BLESSING ✨", Color.GOLD)
 	create_screen_flash(Color.GOLD)
 	heal_all_characters(30)
@@ -118,21 +117,12 @@ func update_event(delta):
 
 func spawn_meteor():
 	var meteor = Meteor.new()
-	
-	# Random position above screen
 	var spawn_x = randf_range(-400, 400)
 	meteor.start_position = Vector2(spawn_x, -350)
-	
-	# Random target on screen
-	meteor.target_position = Vector2(
-		randf_range(-350, 350),
-		randf_range(-250, 250)
-	)
-	
+	meteor.target_position = Vector2(randf_range(-350, 350), randf_range(-250, 250))
 	add_child(meteor)
 
 func apply_blood_moon_effect():
-	# Make all enemies glow red
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	for enemy in enemies:
 		if is_instance_valid(enemy) and enemy.has_node("Sprite2D"):
@@ -140,7 +130,6 @@ func apply_blood_moon_effect():
 			sprite.modulate = Color.RED * 1.3
 
 func update_blood_moon_visuals():
-	# Pulse red effect
 	var pulse = (sin(Time.get_ticks_msec() * 0.003) + 1.0) * 0.5
 	event_background.color = Color(0.3 + pulse * 0.2, 0, 0, 0.5)
 
@@ -152,8 +141,6 @@ func heal_all_characters(amount: int):
 				character.heal(amount)
 			elif "health" in character:
 				character.health += amount
-			
-			# Spawn heal number
 			spawn_heal_effect(character.global_position, amount)
 			create_blessing_particles(character.global_position)
 
@@ -166,7 +153,6 @@ func spawn_heal_effect(pos: Vector2, amount: int):
 	heal_label.add_theme_color_override("font_color", Color.GREEN)
 	heal_label.add_theme_color_override("font_outline_color", Color.DARK_GREEN)
 	heal_label.add_theme_constant_override("outline_size", 3)
-	
 	var tween = create_tween()
 	tween.tween_property(heal_label, "position:y", heal_label.position.y - 60, 1.5)
 	tween.parallel().tween_property(heal_label, "modulate:a", 0.0, 1.5)
@@ -180,10 +166,8 @@ func create_blessing_particles(pos: Vector2):
 		particle.texture = ImageTexture.create_from_image(img)
 		add_child(particle)
 		particle.global_position = pos
-		
 		var angle = (TAU / 8) * i
 		var end_pos = pos + Vector2(cos(angle), sin(angle)) * 60
-		
 		var tween = create_tween()
 		tween.tween_property(particle, "global_position", end_pos, 0.8)
 		tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.8)
@@ -192,18 +176,15 @@ func create_blessing_particles(pos: Vector2):
 func end_event():
 	match current_event:
 		"blood_moon":
-			# Reset enemy colors
 			var enemies = get_tree().get_nodes_in_group("enemies")
 			for enemy in enemies:
 				if is_instance_valid(enemy) and enemy.has_node("Sprite2D"):
 					var sprite = enemy.get_node("Sprite2D")
 					sprite.modulate = Color.RED
-	
 	current_event = "none"
 	spawn_rate_modifier = 1.0
 	damage_modifier = 1.0
 	event_timer = event_check_interval
-	
 	event_label.visible = false
 	event_background.visible = false
 
@@ -213,8 +194,6 @@ func show_event_announcement(text: String, color: Color):
 	event_label.visible = true
 	event_background.visible = true
 	event_background.color = Color(0, 0, 0, 0.7)
-	
-	# Pulse animation
 	event_label.scale = Vector2(0.5, 0.5)
 	var tween = create_tween()
 	tween.tween_property(event_label, "scale", Vector2(1.3, 1.3), 0.3)
@@ -237,7 +216,6 @@ func create_screen_flash(color: Color):
 	flash.color = color
 	flash.color.a = 0.0
 	add_child(flash)
-	
 	var tween = create_tween()
 	tween.tween_property(flash, "color:a", 0.4, 0.2)
 	tween.tween_property(flash, "color:a", 0.0, 0.3)
@@ -247,20 +225,14 @@ func spawn_enemy():
 	if enemy_scene == null:
 		push_error("Enemy scene is not assigned!")
 		return
-	
 	var enemy = enemy_scene.instantiate()
 	add_child(enemy)
 	enemy.position = Vector2(randf_range(-400, 400), randf_range(-300, 300))
-	
-	# Apply blood moon modifier if active
 	if current_event == "blood_moon" and "damage" in enemy:
 		enemy.damage = int(enemy.damage * damage_modifier)
 		if enemy.has_node("Sprite2D"):
 			enemy.get_node("Sprite2D").modulate = Color.RED * 1.3
-	
-	# Update characters list
 	characters = get_tree().get_nodes_in_group("characters")
-	
 	if characters.size() > 0:
 		enemy.target = characters[randi() % characters.size()]
 
@@ -272,35 +244,26 @@ class Meteor extends Node2D:
 	var explosion_radius: float = 80.0
 	var sprite: Sprite2D
 	var trail_timer: float = 0.0
-	
+
 	func _ready():
 		global_position = start_position
-		
-		# Create meteor visual
 		sprite = Sprite2D.new()
 		add_child(sprite)
 		var img = Image.create(16, 16, false, Image.FORMAT_RGBA8)
 		img.fill(Color.ORANGE)
 		sprite.texture = ImageTexture.create_from_image(img)
-		
-		# Point toward target
 		look_at(target_position)
-	
+
 	func _process(delta):
-		# Move toward target
 		var direction = (target_position - global_position).normalized()
 		global_position += direction * speed * delta
-		
-		# Spawn trail
 		trail_timer -= delta
 		if trail_timer <= 0:
 			trail_timer = 0.05
 			spawn_trail()
-		
-		# Check if reached target
 		if global_position.distance_to(target_position) < 20:
 			explode()
-	
+
 	func spawn_trail():
 		var trail = Sprite2D.new()
 		var img = Image.create(8, 8, false, Image.FORMAT_RGBA8)
@@ -308,13 +271,11 @@ class Meteor extends Node2D:
 		trail.texture = ImageTexture.create_from_image(img)
 		get_parent().add_child(trail)
 		trail.global_position = global_position
-		
 		var tween = create_tween()
 		tween.tween_property(trail, "modulate:a", 0.0, 0.5)
 		tween.tween_callback(trail.queue_free)
-	
+
 	func explode():
-		# Create explosion effect
 		for i in range(20):
 			var particle = Sprite2D.new()
 			var img = Image.create(10, 10, false, Image.FORMAT_RGBA8)
@@ -322,16 +283,12 @@ class Meteor extends Node2D:
 			particle.texture = ImageTexture.create_from_image(img)
 			get_parent().add_child(particle)
 			particle.global_position = global_position
-			
 			var angle = (TAU / 20) * i
 			var end_pos = global_position + Vector2(cos(angle), sin(angle)) * explosion_radius
-			
 			var tween = create_tween()
 			tween.tween_property(particle, "global_position", end_pos, 0.5)
 			tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.5)
 			tween.tween_callback(particle.queue_free)
-		
-		# Damage enemies in radius
 		var enemies = get_tree().get_nodes_in_group("enemies")
 		for enemy in enemies:
 			if is_instance_valid(enemy):
@@ -339,5 +296,4 @@ class Meteor extends Node2D:
 				if distance <= explosion_radius:
 					if enemy.has_method("take_damage"):
 						enemy.take_damage(damage)
-		
 		queue_free()
