@@ -1,0 +1,73 @@
+[gd_scene load_steps=2 format=3 uid="uid://6ys403tupbpn"]
+
+[ext_resource type="Script" uid="uid://c8yk4nioip0nm" path="res://Scripts/lobby.gd" id="1_nvaej"]
+
+[node name="Lobby" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_nvaej")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="CharacterGrid" type="GridContainer" parent="MarginContainer"]
+layout_mode = 2
+columns = 4
+
+[node name="RangerButton" type="Button" parent="MarginContainer/CharacterGrid"]
+layout_mode = 2
+size_flags_horizontal = 7
+size_flags_vertical = 10
+toggle_mode = true
+text = "Ranger
+"
+
+[node name="WarriorButton" type="Button" parent="MarginContainer/CharacterGrid"]
+layout_mode = 2
+size_flags_horizontal = 7
+size_flags_vertical = 10
+toggle_mode = true
+text = "Warrior"
+
+[node name="NecromancerButton" type="Button" parent="MarginContainer/CharacterGrid"]
+layout_mode = 2
+size_flags_horizontal = 7
+size_flags_vertical = 10
+toggle_mode = true
+text = "Necromancer"
+
+[node name="ClericButton" type="Button" parent="MarginContainer/CharacterGrid"]
+layout_mode = 2
+size_flags_horizontal = 7
+size_flags_vertical = 10
+toggle_mode = true
+text = "Cleric"
+
+[node name="StartRun" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -53.0
+offset_top = -248.0
+offset_right = 53.0
+offset_bottom = -196.0
+grow_horizontal = 2
+grow_vertical = 0
+disabled = true
+text = "Start"
