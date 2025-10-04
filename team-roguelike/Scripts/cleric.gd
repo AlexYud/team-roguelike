@@ -28,6 +28,8 @@ extends Node2D
 @export var reaction_time: float = 0.3
 @export var rotation_smoothness: float = 8.0
 @export var cast_chance_while_retreating: float = 0.5
+@onready var anim_sprite: AnimatedSprite2D = $AnimatedSprite2D
+
 
 var attack_timer: float = 0.0
 var heal_timer: float = 0.0
@@ -57,6 +59,7 @@ func _ready():
 	smite_timer = smite_cooldown
 	nova_timer = holy_nova_cooldown
 	shield_timer = divine_shield_cooldown
+	anim_sprite.play("breathe")
 
 func setup_visuals():
 	if not has_node("Sprite2D"):
@@ -106,7 +109,6 @@ func _process(delta):
 		target = null
 	
 	# Smooth rotation
-	rotation = lerp_angle(rotation, target_rotation, rotation_smoothness * delta)
 	
 	if target and is_instance_valid(target):
 		var distance = position.distance_to(target.position)
