@@ -20,8 +20,7 @@ extends Node2D
 # Reaction time and smoothness
 @export var reaction_time: float = 0.3
 @export var rotation_smoothness: float = 8.0
-@export var kite_shot_chance: float = 0.7 
-@onready var anim_sprite: AnimatedSprite2D = $AnimatedSprite2D
+@export var kite_shot_chance: float = 0.7  # 70% chance to shoot while retreating
 
 var attack_timer: float = 0.0
 var arrow_timer: float = 0.0
@@ -38,8 +37,6 @@ var target_rotation: float = 0.0
 
 var sprite: Sprite2D
 var original_color: Color = Color.WHITE
-var is_moving: bool = false
-var last_position: Vector2
 
 func _ready():
 	add_to_group("characters")
@@ -48,12 +45,14 @@ func _ready():
 	arrow_timer = arrow_cooldown
 	multi_shot_timer = multi_shot_cooldown
 	rain_timer = rain_of_arrows_cooldown
-	anim_sprite.play("breathe")
-	last_position = position
 
 func setup_visuals():
 	if not has_node("Sprite2D"):
 		sprite = Sprite2D.new()
+		add_child(sprite)
+		var img = Image.create(32, 32, false, Image.FORMAT_RGBA8)
+		img.fill(Color.GREEN)
+		sprite.texture = ImageTexture.create_from_image(img)
 	else:
 		sprite = get_node("Sprite2D")
 	
@@ -67,17 +66,6 @@ func _process(delta):
 	wander_timer -= delta
 	reaction_timer -= delta
 	
-	# Check if character is moving
-	var velocity = (position - last_position) / delta if delta > 0 else Vector2.ZERO
-	is_moving = velocity.length() > 0
-	last_position = position
-	
-	# Update animation based on movement
-	update_animation()
-	
-	# Update sprite flip based on facing direction
-	update_sprite_flip()
-	
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	if enemies.size() > 0:
 		target = enemies[0]
@@ -86,6 +74,9 @@ func _process(delta):
 				target = e
 	else:
 		target = null
+	
+	# Smooth rotation
+	rotation = lerp_angle(rotation, target_rotation, rotation_smoothness * delta)
 	
 	if target and is_instance_valid(target):
 		var distance = position.distance_to(target.position)
@@ -133,30 +124,6 @@ func _process(delta):
 		wander(delta)
 		is_attacking = false
 		sprite.modulate = original_color
-
-func update_animation():
-	if is_moving:
-		if anim_sprite.animation != "walking":
-			anim_sprite.play("walking")
-	else:
-		if anim_sprite.animation != "breathe":
-			anim_sprite.play("breathe")
-
-func update_sprite_flip():
-	# Flip sprite based on target rotation or movement direction
-	var facing_angle = target_rotation
-	
-	# Normalize angle to -PI to PI range
-	while facing_angle > PI:
-		facing_angle -= TAU
-	while facing_angle < -PI:
-		facing_angle += TAU
-	
-	# Flip sprite if facing left (angle between -PI/2 and PI/2 means facing right)
-	if facing_angle > PI / 2 or facing_angle < -PI / 2:
-		anim_sprite.flip_h = true
-	else:
-		anim_sprite.flip_h = false
 
 func pursue_enemy(delta: float):
 	var direction = (target.position - position).normalized()

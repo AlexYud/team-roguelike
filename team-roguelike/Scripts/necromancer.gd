@@ -88,6 +88,7 @@ func _process(delta):
 		target = null
 	
 	# Smooth rotation
+	rotation = lerp_angle(rotation, target_rotation, rotation_smoothness * delta)
 	
 	if target and is_instance_valid(target):
 		var distance = position.distance_to(target.position)

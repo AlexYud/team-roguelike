@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://cs5btsbrq3o7i"]
+
+[ext_resource type="Script" uid="uid://2hrvghwyhn8x" path="res://Scripts/main.gd" id="1_21xkr"]
+[ext_resource type="PackedScene" uid="uid://chrf14sfnxran" path="res://Scenes/enemy.tscn" id="2_6bp64"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_21xkr")
+enemy_scene = ExtResource("2_6bp64")
+
+[node name="Camera2D" type="Camera2D" parent="."]

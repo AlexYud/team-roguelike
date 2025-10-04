@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://dnwxee46dn7yq"]
+
+[ext_resource type="Script" uid="uid://dthwx42awybox" path="res://Scripts/ranger.gd" id="1_txnr6"]
+[ext_resource type="Texture2D" uid="uid://eciu2nr5thym" path="res://Assets/pngegg.png" id="2_5x117"]
+
+[node name="Ranger" type="Node2D"]
+script = ExtResource("1_txnr6")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.085, 0.085)
+texture = ExtResource("2_5x117")

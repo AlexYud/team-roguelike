@@ -45,6 +45,7 @@ func _process(delta):
 			# Keep within bounds
 			position.x = clamp(position.x, -400, 400)
 			position.y = clamp(position.y, -300, 300)
+			look_at(target.global_position)
 			is_attacking = false
 			sprite.modulate = original_color
 		# Attack if in range
