@@ -219,7 +219,8 @@ class Arrow extends Node2D:
 		if distance < 20:
 			if target.has_method(\"take_damage\") and caster:
 				caster.deal_damage_to(target, damage)
-			queue_free()"
+			queue_free()
+"
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_x072d"]
 atlas = ExtResource("2_4mesp")

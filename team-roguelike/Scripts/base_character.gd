@@ -23,12 +23,19 @@ var animated_sprite: AnimatedSprite2D
 var original_color: Color = Color.WHITE
 var char_name: String = ""
 
+# Breathe animation tracking
+var is_moving: bool = false
+var last_position: Vector2
+var idle_frames: int = 0
+var idle_threshold: int = 150
+
 func _ready():
 	add_to_group("characters")
 	char_name = get_meta("char_name", "Unknown")
 	setup_visuals()
 	choose_new_wander_target()
 	character_ready()
+	last_position = position
 
 func character_ready():
 	pass
@@ -44,6 +51,11 @@ func _process(delta):
 	attack_timer -= delta
 	reaction_timer -= delta
 	wander_timer -= delta
+	
+	# Check if character is moving
+	var velocity = (position - last_position) / delta if delta > 0 else Vector2.ZERO
+	is_moving = velocity.length() > 0
+	last_position = position
 	
 	update_ability_timers(delta)
 	
@@ -67,12 +79,20 @@ func _process(delta):
 func update_animation():
 	if not animated_sprite: return
 	
-	var new_anim = "Idle"
-	match current_state:
-		"wandering", "pursuing", "retreating":
-			new_anim = "Walk"
-		"idle", "combat":
-			new_anim = "Idle"
+	var new_anim = "idle"
+	
+	if is_moving:
+		idle_frames = 0
+		new_anim = "walking"
+	else:
+		idle_frames += 1
+		if idle_frames < idle_threshold:
+			new_anim = "idle"
+		else:
+			if animated_sprite.sprite_frames.has_animation("breathe"):
+				new_anim = "breathe"
+			else:
+				new_anim = "idle"
 	
 	if animated_sprite.animation != new_anim:
 		animated_sprite.play(new_anim)
