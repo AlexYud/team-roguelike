@@ -24,36 +24,31 @@ func setup_visuals():
 		sprite.texture = ImageTexture.create_from_image(img)
 	else:
 		sprite = get_node("Sprite2D")
-	
+	sprite.z_as_relative = false
 	original_color = sprite.modulate
 
 func find_nearest_target():
 	var characters = get_tree().get_nodes_in_group("characters")
 	if characters.size() == 0:
 		return null
-	
 	var nearest = null
 	var nearest_distance = INF
-	
 	for character in characters:
 		var distance = position.distance_to(character.position)
 		if distance < nearest_distance:
 			nearest_distance = distance
 			nearest = character
-	
 	return nearest
 
 func _process(delta):
+	z_index = int(global_position.y)
 	if target == null or not is_instance_valid(target):
 		target = find_nearest_target()
 		if target == null:
 			return
-	
 	attack_timer -= delta
-	
 	if target and is_instance_valid(target):
 		var distance = position.distance_to(target.position)
-		
 		if distance > attack_range:
 			var direction = (target.position - position).normalized()
 			position += direction * speed * delta
@@ -75,13 +70,14 @@ func attack_flash():
 	if is_instance_valid(self):
 		sprite.modulate = original_color
 
-func take_damage(amount: int):
+func take_damage(amount: int) -> bool:
 	health -= amount
 	damage_flash()
 	spawn_damage_number(amount)
-	
 	if health <= 0:
 		queue_free()
+		return true
+	return false
 
 func damage_flash():
 	sprite.modulate = Color.WHITE * 2
@@ -94,34 +90,28 @@ func spawn_damage_number(amount: int):
 	damage_label.damage = amount
 	var offset = Vector2(randf_range(-15, 15), randf_range(-10, 10))
 	damage_label.global_position = global_position + offset
+	damage_label.z_index = int(damage_label.global_position.y) + 100
 	get_parent().add_child(damage_label)
 
 class DamageNumber extends Node2D:
 	var damage: int = 0
-	var lifetime: float = 1.0
-	var float_speed: float = 50.0
-	var fade_start: float = 0.5
 	var label: Label
-	
 	func _ready():
 		label = Label.new()
 		add_child(label)
 		label.text = str(damage)
-		label.add_theme_font_size_override("font_size", 20)
-		label.add_theme_color_override("font_color", Color.WHITE)
+		label.add_theme_font_size_override("font_size", 36)
+		label.add_theme_color_override("font_color", Color(1, 1, 0))
 		label.add_theme_color_override("font_outline_color", Color.BLACK)
 		label.add_theme_constant_override("outline_size", 3)
-		label.position = Vector2(-20, -30)
-		scale = Vector2(0.5, 0.5)
+		label.position = Vector2(-20, -40)
+		scale = Vector2(0.7, 0.7)
+		modulate = Color(1, 1, 1, 1)
 		var tween = create_tween()
-		tween.tween_property(self, "scale", Vector2(1.2, 1.2), 0.1)
-		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.1)
-	
-	func _process(delta):
-		position.y -= float_speed * delta
-		lifetime -= delta
-		if lifetime < fade_start:
-			var alpha = lifetime / fade_start
-			modulate.a = alpha
-		if lifetime <= 0:
+		tween.tween_property(self, "scale", Vector2(1.5, 1.5), 0.08)
+		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.12)
+		tween.tween_property(self, "global_position", global_position + Vector2(0, -40), 0.6)
+		tween.tween_property(self, "modulate:a", 0.0, 0.6)
+		await tween.finished
+		if is_instance_valid(self):
 			queue_free()

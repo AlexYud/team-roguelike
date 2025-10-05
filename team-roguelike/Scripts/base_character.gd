@@ -23,7 +23,6 @@ var animated_sprite: AnimatedSprite2D
 var original_color: Color = Color.WHITE
 var char_name: String = ""
 
-# Breathe animation tracking
 var is_moving: bool = false
 var last_position: Vector2
 var idle_frames: int = 0
@@ -32,6 +31,7 @@ var idle_threshold: int = 150
 func _ready():
 	add_to_group("characters")
 	char_name = get_meta("char_name", "Unknown")
+	Global.init_character_stats(char_name)
 	setup_visuals()
 	choose_new_wander_target()
 	character_ready()
@@ -43,28 +43,25 @@ func character_ready():
 func setup_visuals():
 	animated_sprite = get_node_or_null("AnimatedSprite2D")
 	if animated_sprite:
+		animated_sprite.z_as_relative = false
 		original_color = animated_sprite.modulate
 	else:
 		push_error("This character is missing an AnimatedSprite2D node.")
 
 func _process(delta):
+	z_index = int(global_position.y)
 	attack_timer -= delta
 	reaction_timer -= delta
 	wander_timer -= delta
-	
-	# Check if character is moving
 	var velocity = (position - last_position) / delta if delta > 0 else Vector2.ZERO
 	is_moving = velocity.length() > 0
 	last_position = position
-	
 	update_ability_timers(delta)
-	
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	if enemies.size() > 0:
 		target = find_closest_enemy(enemies)
 	else:
 		target = null
-	
 	if target and is_instance_valid(target):
 		handle_combat(enemies, delta)
 	else:
@@ -72,15 +69,12 @@ func _process(delta):
 		wander(delta)
 		if animated_sprite:
 			animated_sprite.modulate = original_color
-
 	update_animation()
 	update_sprite_direction()
 
 func update_animation():
 	if not animated_sprite: return
-	
 	var new_anim = "idle"
-	
 	if is_moving:
 		idle_frames = 0
 		new_anim = "walking"
@@ -93,19 +87,16 @@ func update_animation():
 				new_anim = "breathe"
 			else:
 				new_anim = "idle"
-	
 	if animated_sprite.animation != new_anim:
 		animated_sprite.play(new_anim)
 
 func update_sprite_direction():
 	if not animated_sprite: return
-	
 	var look_at_pos = Vector2.ZERO
 	if target and is_instance_valid(target):
 		look_at_pos = target.global_position
 	elif current_state == "wandering":
 		look_at_pos = wander_target
-	
 	if look_at_pos != Vector2.ZERO:
 		if look_at_pos.x < global_position.x:
 			animated_sprite.flip_h = true
@@ -124,7 +115,6 @@ func find_closest_enemy(enemies: Array) -> Node2D:
 
 func handle_combat(enemies: Array, delta: float):
 	var distance = position.distance_to(target.position)
-	
 	var closest_enemy_distance = distance
 	var closest_enemy = target
 	for enemy in enemies:
@@ -133,7 +123,6 @@ func handle_combat(enemies: Array, delta: float):
 			if dist < closest_enemy_distance:
 				closest_enemy_distance = dist
 				closest_enemy = enemy
-	
 	var new_state = "idle"
 	if closest_enemy_distance < safe_distance:
 		new_state = "retreating"
@@ -141,12 +130,10 @@ func handle_combat(enemies: Array, delta: float):
 		new_state = "pursuing"
 	else:
 		new_state = "combat"
-	
 	if new_state != current_state:
 		previous_state = current_state
 		current_state = new_state
 		reaction_timer = reaction_time
-	
 	if reaction_timer <= 0:
 		execute_state(enemies, delta, closest_enemy)
 	else:
@@ -177,7 +164,6 @@ func pursue_enemy(delta: float):
 func retreat_from_enemies(enemies: Array, delta: float, closest_enemy: Node2D):
 	var retreat_direction = Vector2.ZERO
 	var threat_count = 0
-	
 	for enemy in enemies:
 		if is_instance_valid(enemy):
 			var distance = position.distance_to(enemy.position)
@@ -186,24 +172,18 @@ func retreat_from_enemies(enemies: Array, delta: float, closest_enemy: Node2D):
 				var threat_weight = 1.0 - (distance / (safe_distance * 1.5))
 				retreat_direction += away_direction * threat_weight
 				threat_count += 1
-	
 	if threat_count > 0:
 		retreat_direction = retreat_direction.normalized()
-		
 		var edge_buffer = 50
 		var future_pos = position + retreat_direction * speed * retreat_speed_multiplier * delta
-		
 		if future_pos.x < -400 + edge_buffer or future_pos.x > 400 - edge_buffer:
 			retreat_direction.x *= -0.5
 		if future_pos.y < -300 + edge_buffer or future_pos.y > 300 - edge_buffer:
 			retreat_direction.y *= -0.5
-		
 		retreat_direction = retreat_direction.normalized()
-		
 		position += retreat_direction * speed * retreat_speed_multiplier * delta
 		position.x = clamp(position.x, -400, 400)
 		position.y = clamp(position.y, -300, 300)
-		
 		retreat_action(closest_enemy)
 		if animated_sprite:
 			animated_sprite.modulate = get_retreat_color()
@@ -234,12 +214,10 @@ func wander(delta):
 	if wander_timer <= 0:
 		choose_new_wander_target()
 		wander_timer = randf_range(2.0, 5.0)
-	
 	var distance = position.distance_to(wander_target)
 	if distance > 10:
 		var direction = (wander_target - position).normalized()
 		position += direction * speed * 0.5 * delta
-	
 	position.x = clamp(position.x, -400, 400)
 	position.y = clamp(position.y, -300, 300)
 
@@ -251,23 +229,19 @@ func choose_new_wander_target():
 	wander_target.y = clamp(wander_target.y, -300, 300)
 
 func take_damage(amount: int):
-	Global.total_damage_taken += amount
-	if char_name != "Unknown":
-		Global.character_stats[char_name].damage_taken += amount
-	
+	Global.add_damage_taken(char_name, amount)
 	health -= amount
 	damage_flash()
 	spawn_damage_number(amount)
-	
 	if health <= 0:
 		queue_free()
 
 func deal_damage_to(enemy: Node2D, amount: int):
 	if enemy.has_method("take_damage"):
-		enemy.take_damage(amount)
-		Global.total_damage_dealt += amount
-		if char_name != "Unknown":
-			Global.character_stats[char_name].damage_dealt += amount
+		var died = enemy.take_damage(amount)
+		Global.add_damage_dealt(char_name, amount)
+		if died:
+			Global.add_enemy_killed(char_name)
 
 func damage_flash():
 	if not animated_sprite: return
@@ -286,31 +260,36 @@ func cast_flash(color: Color):
 func spawn_damage_number(amount: int):
 	var damage_label = DamageNumber.new()
 	damage_label.damage = amount
-	var offset = Vector2(randf_range(-15, 15), randf_range(-10, 10))
+	var offset = Vector2(randf_range(-20, 20), randf_range(-15, 15))
 	damage_label.global_position = global_position + offset
+	damage_label.z_index = int(damage_label.global_position.y) + 100
 	get_parent().add_child(damage_label)
 
 class DamageNumber extends Node2D:
 	var damage: int = 0
-	var lifetime: float = 1.0
-	var float_speed: float = 50.0
-	var fade_start: float = 0.5
+	var lifetime: float = 1.2
+	var float_speed: float = 80.0
+	var fade_start: float = 0.7
 	var label: Label
-	
 	func _ready():
 		label = Label.new()
 		add_child(label)
 		label.text = str(damage)
-		label.add_theme_font_size_override("font_size", 20)
-		label.add_theme_color_override("font_color", Color.WHITE)
+		label.add_theme_font_size_override("font_size", 48)
+		label.add_theme_color_override("font_color", Color.RED)
 		label.add_theme_color_override("font_outline_color", Color.BLACK)
-		label.add_theme_constant_override("outline_size", 3)
-		label.position = Vector2(-20, -30)
-		scale = Vector2(0.5, 0.5)
+		label.add_theme_constant_override("outline_size", 5)
+		label.position = Vector2(-40, -50)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		scale = Vector2(0.3, 0.3)
 		var tween = create_tween()
-		tween.tween_property(self, "scale", Vector2(1.2, 1.2), 0.1)
-		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.1)
-	
+		tween.set_parallel(true)
+		tween.tween_property(self, "scale", Vector2(1.5, 1.5), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(label, "rotation", randf_range(-0.2, 0.2), 0.15)
+		await tween.finished
+		var shrink = create_tween()
+		shrink.tween_property(self, "scale", Vector2(1.0, 1.0), 0.1)
 	func _process(delta):
 		position.y -= float_speed * delta
 		lifetime -= delta

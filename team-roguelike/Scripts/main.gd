@@ -1,14 +1,23 @@
 extends Node2D
-@export var room_scene: PackedScene = preload("res://Scenes/room.tscn")
+@export var room_scene: PackedScene = preload("res://Scenes/Room/room.tscn")
 @export var enemy_scene: PackedScene
 @export var lobby_scene_path: String = "res://Scenes/lobby.tscn"
+@export var room_ui_scene: PackedScene = preload("res://Scenes/Room/roomUI.tscn")
+
 var current_room_index: int = 0
 var room_instance: Node = null
 var party: Array = []
+var room_ui: CanvasLayer = null
+var game_over_shown: bool = false
 
 func _ready():
+	setup_room_ui()
 	spawn_party_characters()
 	start_next_room()
+
+func setup_room_ui():
+	room_ui = room_ui_scene.instantiate()
+	add_child(room_ui)
 
 func spawn_party_characters():
 	for char_name in Global.selected_characters:
@@ -43,7 +52,9 @@ func start_next_room():
 	room_instance.position = Vector2.ZERO
 	room_instance.enemy_scene = enemy_scene
 	room_instance.enemy_count = enemy_count
+	room_instance.current_room = current_room_index
 	room_instance.connect("cleared", Callable(self, "_on_room_cleared"))
+	room_instance.connect("room_changed", Callable(room_ui, "update_room_number"))
 	add_child(room_instance)
 	
 	teleport_party_to_room(room_instance)
@@ -67,11 +78,16 @@ func get_enemies_for_room(idx: int) -> int:
 	return 5 + (idx - 1) * 2
 
 func _process(delta):
+	if game_over_shown:
+		return
 	var chars := get_tree().get_nodes_in_group("characters")
 	if chars.size() == 0:
 		show_game_over()
 
 func show_game_over():
+	if game_over_shown:
+		return
+	game_over_shown = true
 	var game_over_scene = load("res://Scenes/GameOver.tscn")
 	var game_over = game_over_scene.instantiate()
 	add_child(game_over)
