@@ -36,7 +36,6 @@ theme_override_constants/margin_bottom = 50
 
 [node name="MainContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-size_flags_vertical = 4
 theme_override_constants/separation = 20
 
 [node name="Title" type="Label" parent="MarginContainer/MainContainer"]
@@ -62,7 +61,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="ReturnButton" type="Button" parent="MarginContainer/MainContainer"]
-custom_minimum_size = Vector2(200, 50)
+custom_minimum_size = Vector2(200, 60)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4

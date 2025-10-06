@@ -11,10 +11,6 @@ enemy_scene = ExtResource("2_5c7ct")
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(0.75, 0.75)
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.54, 0.54)
-texture = ExtResource("3_vyol7")
-
 [node name="CharacterSpawnPoints" type="Node2D" parent="."]
 
 [node name="Marker2D" type="Marker2D" parent="CharacterSpawnPoints"]
@@ -44,3 +40,7 @@ position = Vector2(-2, 213)
 
 [node name="Marker2D6" type="Marker2D" parent="MonsterSpawnPoints"]
 position = Vector2(-2, -246)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.54, 0.54)
+texture = ExtResource("3_vyol7")

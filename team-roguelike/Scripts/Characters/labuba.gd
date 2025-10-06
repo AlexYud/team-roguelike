@@ -2,20 +2,19 @@ extends "res://Scripts/base_character.gd"
 
 @export var fire_bolt_cooldown: float = 1.5
 @export var fire_bolt_damage: int = 15
-@export var stun_cooldown: float = 6.0
-@export var stun_damage: int = 10
-@export var stun_duration: float = 2.0
+@export var shotgun_cooldown: float = 5.0
+@export var shotgun_damage: int = 12
 @export var ultimate_cooldown: float = 20.0
 @export var ultimate_damage: int = 50
 @export var ultimate_radius: float = 200
 
 var fire_bolt_timer: float = 0.0
-var stun_timer: float = 0.0
+var shotgun_timer: float = 0.0
 var ultimate_timer: float = 0.0
 
 func character_ready():
 	fire_bolt_timer = fire_bolt_cooldown
-	stun_timer = stun_cooldown
+	shotgun_timer = shotgun_cooldown
 	ultimate_timer = ultimate_cooldown
 	speed = 200
 	attack_range = 220
@@ -25,40 +24,38 @@ func character_ready():
 	max_health = 50
 	safe_distance = 160
 	retreat_speed_multiplier = 1.3
+	crit_chance = 0.10
+	crit_damage_multiplier = 1.75
 
 func update_ability_timers(delta: float):
 	fire_bolt_timer -= delta
-	stun_timer -= delta
+	shotgun_timer -= delta
 	ultimate_timer -= delta
 
-func get_retreat_color() -> Color:
-	return Color.ORANGE_RED
-
-func retreat_action(closest_enemy: Node2D):
-	if fire_bolt_timer <= 0 and randf() < 0.5:
-		fire_bolt_timer = fire_bolt_cooldown * 1.2
-		cast_fire_bolt(closest_enemy)
+func retreat_action():
+	if shotgun_timer <= 0 and randf() < 0.5 and is_instance_valid(target):
+		shotgun_timer = shotgun_cooldown * 1.2
+		cast_shotgun(target)
 
 func use_abilities(enemies: Array) -> bool:
 	var nearby_count = count_nearby_enemies(enemies, ultimate_radius)
+	var distance_to_target = position.distance_to(target.position)
 	
 	if ultimate_timer <= 0 and nearby_count >= 3:
 		ultimate_timer = ultimate_cooldown
 		cast_ultimate()
 		return true
-	elif stun_timer <= 0:
-		stun_timer = stun_cooldown
-		cast_stun(target)
-		return true
-	elif fire_bolt_timer <= 0:
-		fire_bolt_timer = fire_bolt_cooldown
-		cast_fire_bolt(target)
+	elif shotgun_timer <= 0 and is_instance_valid(target) and distance_to_target <= attack_range * 1.2:
+		shotgun_timer = shotgun_cooldown
+		cast_shotgun(target)
 		return true
 	
 	return false
 
 func basic_attack(enemy: Node2D):
-	cast_fire_bolt(enemy)
+	if fire_bolt_timer <= 0:
+		fire_bolt_timer = fire_bolt_cooldown
+		cast_fire_bolt(enemy)
 
 func count_nearby_enemies(enemies: Array, radius: float) -> int:
 	var count = 0
@@ -69,46 +66,40 @@ func count_nearby_enemies(enemies: Array, radius: float) -> int:
 	return count
 
 func cast_fire_bolt(enemy: Node2D):
+	if not is_instance_valid(enemy):
+		return
+
+	cast_flash(Color.ORANGE_RED)
+	
 	var bolt = FireBolt.new()
-	bolt.target = enemy
+	bolt.direction = (enemy.global_position - global_position).normalized()
 	bolt.damage = fire_bolt_damage
-	bolt.speed = 380
+	bolt.speed = 400
 	bolt.caster = self
-	
-	var proj_sprite = Sprite2D.new()
-	bolt.add_child(proj_sprite)
-	var img = Image.create(10, 10, false, Image.FORMAT_RGBA8)
-	img.fill(Color.ORANGE_RED)
-	proj_sprite.texture = ImageTexture.create_from_image(img)
-	
 	get_parent().add_child(bolt)
 	bolt.global_position = global_position
-	
-	cast_flash(Color.ORANGE_RED)
 
-func cast_stun(enemy: Node2D):
-	if animated_sprite:
-		animated_sprite.modulate = Color.YELLOW
+func cast_shotgun(enemy: Node2D):
+	if not is_instance_valid(enemy):
+		return
+
+	cast_flash(Color.ORANGE)
+	var base_direction = (enemy.global_position - global_position).normalized()
+	var spread_angle = deg_to_rad(20)
+	var directions = [
+		base_direction.rotated(-spread_angle),
+		base_direction,
+		base_direction.rotated(spread_angle)
+	]
 	
-	var stun_projectile = StunProjectile.new()
-	stun_projectile.target = enemy
-	stun_projectile.damage = stun_damage
-	stun_projectile.stun_duration = stun_duration
-	stun_projectile.speed = 300
-	stun_projectile.caster = self
-	
-	var proj_sprite = Sprite2D.new()
-	stun_projectile.add_child(proj_sprite)
-	var img = Image.create(14, 14, false, Image.FORMAT_RGBA8)
-	img.fill(Color.YELLOW)
-	proj_sprite.texture = ImageTexture.create_from_image(img)
-	
-	get_parent().add_child(stun_projectile)
-	stun_projectile.global_position = global_position
-	
-	await get_tree().create_timer(0.2).timeout
-	if is_instance_valid(self) and animated_sprite:
-		animated_sprite.modulate = original_color
+	for dir in directions:
+		var bolt = FireBolt.new()
+		bolt.direction = dir
+		bolt.damage = shotgun_damage
+		bolt.speed = 450
+		bolt.caster = self
+		get_parent().add_child(bolt)
+		bolt.global_position = global_position
 
 func cast_ultimate():
 	if animated_sprite:
@@ -166,93 +157,32 @@ func create_ultimate_explosion():
 		tween.tween_callback(particle.queue_free)
 
 class FireBolt extends Node2D:
-	var target: Node2D = null
+	var direction: Vector2 = Vector2.RIGHT
 	var damage: int = 15
-	var speed: float = 380
-	var lifetime: float = 3.0
+	var speed: float = 400
+	var lifetime: float = 1.5
 	var caster: Node2D = null
 	
 	func _ready():
+		var proj_sprite = Sprite2D.new()
+		add_child(proj_sprite)
+		var img = Image.create(10, 10, false, Image.FORMAT_RGBA8)
+		img.fill(Color.ORANGE_RED)
+		proj_sprite.texture = ImageTexture.create_from_image(img)
+		rotation = direction.angle()
+		
 		await get_tree().create_timer(lifetime).timeout
 		if is_instance_valid(self):
 			queue_free()
 	
 	func _process(delta):
-		if not target or not is_instance_valid(target):
-			queue_free()
-			return
-		
-		var direction = (target.global_position - global_position).normalized()
 		global_position += direction * speed * delta
-		look_at(target.global_position)
 		
-		if global_position.distance_to(target.global_position) < 20:
-			if caster:
-				caster.deal_damage_to(target, damage)
-			queue_free()
-
-class StunProjectile extends Node2D:
-	var target: Node2D = null
-	var damage: int = 10
-	var stun_duration: float = 2.0
-	var speed: float = 300
-	var lifetime: float = 3.0
-	var caster: Node2D = null
-	
-	func _ready():
-		await get_tree().create_timer(lifetime).timeout
-		if is_instance_valid(self):
-			queue_free()
-	
-	func _process(delta):
-		if not target or not is_instance_valid(target):
-			queue_free()
-			return
-		
-		var direction = (target.global_position - global_position).normalized()
-		global_position += direction * speed * delta
-		look_at(target.global_position)
-		
-		if global_position.distance_to(target.global_position) < 20:
-			if caster:
-				caster.deal_damage_to(target, damage)
-			apply_stun(target)
-			queue_free()
-	
-	func apply_stun(enemy: Node2D):
-		if "speed" in enemy:
-			var original_speed = enemy.speed
-			enemy.speed = 0
-			
-			create_stun_effect(enemy)
-			
-			await get_tree().create_timer(stun_duration).timeout
+		var enemies = get_tree().get_nodes_in_group("enemies")
+		for enemy in enemies:
 			if is_instance_valid(enemy):
-				enemy.speed = original_speed
-	
-	func create_stun_effect(enemy: Node2D):
-		for i in range(8):
-			var particle = Sprite2D.new()
-			var img = Image.create(6, 6, false, Image.FORMAT_RGBA8)
-			img.fill(Color.YELLOW)
-			particle.texture = ImageTexture.create_from_image(img)
-			get_parent().add_child(particle)
-			
-			var angle = (TAU / 8) * i
-			var start_angle = angle
-			particle.global_position = enemy.global_position + Vector2(0, -30)
-			
-			var radius = 25
-			var rotation_speed = 3.0
-			
-			for j in range(int(stun_duration * 60)):
-				await get_tree().create_timer(1.0 / 60.0).timeout
-				if is_instance_valid(enemy) and is_instance_valid(particle):
-					start_angle += rotation_speed / 60.0
-					var offset = Vector2(cos(start_angle), sin(start_angle)) * radius
-					particle.global_position = enemy.global_position + offset + Vector2(0, -30)
-				else:
-					break
-			
-			if is_instance_valid(particle):
-				particle.queue_free()
+				if global_position.distance_to(enemy.global_position) < 20:
+					if caster:
+						caster.deal_damage_to(enemy, damage)
+					queue_free()
+					return

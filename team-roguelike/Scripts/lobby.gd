@@ -28,7 +28,7 @@ func _ready():
 	start_button.connect("pressed", Callable(self, "_on_start_run_pressed"))
 	start_button.disabled = true
 
-func _process(delta):
+func _process(_delta):
 	idle_frames += 1
 	
 	# Update all sprite animations

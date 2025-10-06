@@ -77,7 +77,7 @@ func teleport_party_to_room(room: Node):
 func get_enemies_for_room(idx: int) -> int:
 	return 5 + (idx - 1) * 2
 
-func _process(delta):
+func _process(_delta):
 	if game_over_shown:
 		return
 	var chars := get_tree().get_nodes_in_group("characters")
