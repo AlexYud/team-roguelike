@@ -12,6 +12,8 @@ extends Node2D
 @export var reaction_time: float = 0.3
 @export var crit_chance: float = 0.05
 @export var crit_damage_multiplier: float = 1.5
+@export var knockback_distance: float = 40.0
+@export var knockback_duration: float = 0.15
 
 var attack_timer: float = 0.0
 var reaction_timer: float = 0.0
@@ -20,6 +22,7 @@ var target: Node2D = null
 var wander_target: Vector2
 var current_state: String = "idle"
 var previous_state: String = "idle"
+var is_knocked_back: bool = false
 
 var animated_sprite: AnimatedSprite2D
 var original_color: Color = Color.WHITE
@@ -29,6 +32,9 @@ var is_moving: bool = false
 var last_position: Vector2
 var idle_frames: int = 0
 var idle_threshold: int = 150
+
+# Track spawned effects for cleanup
+var spawned_effects: Array = []
 
 func _ready():
 	add_to_group("characters")
@@ -45,13 +51,19 @@ func character_ready():
 func setup_visuals():
 	animated_sprite = get_node_or_null("AnimatedSprite2D")
 	if animated_sprite:
-		animated_sprite.z_as_relative = false
+		animated_sprite.z_as_relative = true
+		animated_sprite.z_index = 0
 		original_color = animated_sprite.modulate
 	else:
 		push_error("This character is missing an AnimatedSprite2D node.")
 
 func _process(delta):
+	# Characters with higher Y position (lower on screen) should render in front
 	z_index = int(global_position.y)
+	
+	if is_knocked_back:
+		return
+	
 	attack_timer -= delta
 	reaction_timer -= delta
 	wander_timer -= delta
@@ -236,8 +248,46 @@ func take_damage(amount: int, is_crit: bool = false):
 	health -= amount
 	damage_flash()
 	spawn_damage_number(amount, is_crit)
+	apply_knockback()
 	if health <= 0:
-		queue_free()
+		die()
+
+func apply_knockback():
+	if is_knocked_back:
+		return
+	is_knocked_back = true
+	var knockback_dir = Vector2.ZERO
+	if target and is_instance_valid(target):
+		knockback_dir = (global_position - target.global_position).normalized()
+	else:
+		knockback_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
+	var start_pos = global_position
+	var end_pos = start_pos + knockback_dir * knockback_distance
+	end_pos.x = clamp(end_pos.x, -400, 400)
+	end_pos.y = clamp(end_pos.y, -300, 300)
+	var tween = create_tween()
+	tween.tween_property(self, "global_position", end_pos, knockback_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	await tween.finished
+	if is_instance_valid(self):
+		is_knocked_back = false
+
+func die():
+	# Clean up all spawned effects before dying
+	cleanup_effects()
+	queue_free()
+
+func cleanup_effects():
+	# Remove all tracked effects
+	for effect in spawned_effects:
+		if is_instance_valid(effect):
+			effect.queue_free()
+	spawned_effects.clear()
+
+func register_effect(effect: Node):
+	# Add effect to tracking array
+	spawned_effects.append(effect)
+	# Clean up invalid references
+	spawned_effects = spawned_effects.filter(func(e): return is_instance_valid(e))
 
 func deal_damage_to(enemy: Node2D, amount: int):
 	if enemy.has_method("take_damage"):
@@ -290,7 +340,7 @@ class DamageNumber extends Node2D:
 		label.add_theme_color_override("font_outline_color", Color.BLACK)
 		label.add_theme_constant_override("outline_size", 5)
 		if is_crit:
-			label.add_theme_color_override("font_color", Color.YELLOW)
+			label.add_theme_color_override("font_color", Color.FIREBRICK)
 			label.add_theme_font_size_override("font_size", 64)
 		label.position = Vector2(-40, -50)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

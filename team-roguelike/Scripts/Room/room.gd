@@ -4,8 +4,8 @@ extends Node2D
 @export var spawn_delay: float = 1.0
 @export var spawn_delay_decrease: float = 0.1
 @export var min_spawn_delay: float = 0.05
-@export var health_scale_per_room: float = 1
-@export var damage_scale_per_room: float = 1
+@export var health_scale_per_room: float = 0.5
+@export var damage_scale_per_room: float = 0.5
 signal cleared
 signal room_changed(room_number: int)
 @onready var monster_spawn_points = $MonsterSpawnPoints.get_children() if has_node("MonsterSpawnPoints") else []

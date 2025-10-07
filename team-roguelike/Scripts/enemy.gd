@@ -27,7 +27,9 @@ func setup_visuals():
 		sprite.texture = ImageTexture.create_from_image(img)
 	else:
 		sprite = get_node("Sprite2D")
-	sprite.z_as_relative = false
+	# Make sure sprite z_index is relative to parent
+	sprite.z_as_relative = true
+	sprite.z_index = 0
 	original_color = sprite.modulate
 func find_nearest_target():
 	var characters = get_tree().get_nodes_in_group("characters")
@@ -42,7 +44,9 @@ func find_nearest_target():
 			nearest = character
 	return nearest
 func _process(delta):
+	# Update z_index based on Y position for proper depth sorting
 	z_index = int(global_position.y)
+	
 	if is_knocked_back:
 		return
 	if target == null or not is_instance_valid(target):

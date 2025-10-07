@@ -42,5 +42,6 @@ position = Vector2(-2, 213)
 position = Vector2(-2, -246)
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+z_index = -1000
 scale = Vector2(0.54, 0.54)
 texture = ExtResource("3_vyol7")
