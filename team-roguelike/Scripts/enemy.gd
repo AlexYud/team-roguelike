@@ -1,4 +1,5 @@
 extends Node2D
+
 @export var health: int = 30
 @export var speed: float = 100
 @export var attack_range: float = 50
@@ -8,16 +9,20 @@ extends Node2D
 @export var crit_damage_multiplier: float = 1.5
 @export var knockback_distance: float = 40.0
 @export var knockback_duration: float = 0.15
+
 var target: Node2D = null
 var attack_timer: float = 0.0
 var is_attacking: bool = false
 var is_knocked_back: bool = false
 var sprite: Sprite2D
 var original_color: Color = Color.WHITE
+var is_dying: bool = false
+
 func _ready():
 	add_to_group("enemies")
 	setup_visuals()
 	target = find_nearest_target()
+
 func setup_visuals():
 	if not has_node("Sprite2D"):
 		sprite = Sprite2D.new()
@@ -27,10 +32,10 @@ func setup_visuals():
 		sprite.texture = ImageTexture.create_from_image(img)
 	else:
 		sprite = get_node("Sprite2D")
-	# Make sure sprite z_index is relative to parent
 	sprite.z_as_relative = true
 	sprite.z_index = 0
 	original_color = sprite.modulate
+
 func find_nearest_target():
 	var characters = get_tree().get_nodes_in_group("characters")
 	if characters.size() == 0:
@@ -43,8 +48,8 @@ func find_nearest_target():
 			nearest_distance = distance
 			nearest = character
 	return nearest
+
 func _process(delta):
-	# Update z_index based on Y position for proper depth sorting
 	z_index = int(global_position.y)
 	
 	if is_knocked_back:
@@ -53,14 +58,15 @@ func _process(delta):
 		target = find_nearest_target()
 		if target == null:
 			return
+
 	attack_timer -= delta
 	if target and is_instance_valid(target):
 		var distance = position.distance_to(target.position)
 		if distance > attack_range:
 			var direction = (target.position - position).normalized()
 			position += direction * speed * delta
-			position.x = clamp(position.x, -400, 400)
-			position.y = clamp(position.y, -300, 300)
+			position.x = clamp(position.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
+			position.y = clamp(position.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
 			is_attacking = false
 			sprite.modulate = original_color
 		elif attack_timer <= 0:
@@ -75,20 +81,31 @@ func _process(delta):
 			attack_flash()
 		else:
 			is_attacking = false
+
 func attack_flash():
 	sprite.modulate = Color.ORANGE
 	await get_tree().create_timer(0.1).timeout
 	if is_instance_valid(self):
 		sprite.modulate = original_color
+
 func take_damage(amount: int, is_crit: bool = false) -> bool:
+	if is_dying or health <= 0:
+		return false
+
 	health -= amount
 	damage_flash()
 	spawn_damage_number(amount, is_crit)
-	apply_knockback()
+	
 	if health <= 0:
+		is_dying = true
+		apply_knockback() 
+		_spawn_soul_effect()
 		queue_free()
 		return true
+	
+	apply_knockback() 
 	return false
+
 func apply_knockback():
 	if is_knocked_back:
 		return
@@ -98,20 +115,24 @@ func apply_knockback():
 		knockback_dir = (global_position - target.global_position).normalized()
 	else:
 		knockback_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
+
 	var start_pos = global_position
 	var end_pos = start_pos + knockback_dir * knockback_distance
-	end_pos.x = clamp(end_pos.x, -400, 400)
-	end_pos.y = clamp(end_pos.y, -300, 300)
+	end_pos.x = clamp(end_pos.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
+	end_pos.y = clamp(end_pos.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
+	
 	var tween = create_tween()
 	tween.tween_property(self, "global_position", end_pos, knockback_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	await tween.finished
 	if is_instance_valid(self):
 		is_knocked_back = false
+
 func damage_flash():
 	sprite.modulate = Color.WHITE * 2
 	await get_tree().create_timer(0.1).timeout
 	if is_instance_valid(self):
 		sprite.modulate = original_color
+
 func spawn_damage_number(amount: int, is_crit: bool = false):
 	var damage_label = DamageNumber.new()
 	damage_label.damage = amount
@@ -120,6 +141,20 @@ func spawn_damage_number(amount: int, is_crit: bool = false):
 	damage_label.global_position = global_position + offset
 	damage_label.z_index = 1000
 	get_parent().add_child(damage_label)
+
+func _spawn_soul_effect():
+	var soul_particle_scene = preload("res://Scenes/SoulParticle.tscn")
+	var soul_particle = soul_particle_scene.instantiate()
+	var label_pos := Vector2.ZERO
+	var ui = get_tree().get_first_node_in_group("room_ui")
+	if ui:
+		var label = ui.get_node("SoulLabel")
+		label_pos = label.get_global_position() + Vector2(20, 20)
+	get_parent().add_child(soul_particle)
+	soul_particle.global_position = global_position
+	soul_particle.target_position = label_pos
+	soul_particle.z_index = 999
+
 class DamageNumber extends Node2D:
 	var damage: int = 0
 	var is_crit: bool = false

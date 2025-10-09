@@ -33,7 +33,6 @@ var last_position: Vector2
 var idle_frames: int = 0
 var idle_threshold: int = 150
 
-# Track spawned effects for cleanup
 var spawned_effects: Array = []
 
 func _ready():
@@ -58,7 +57,6 @@ func setup_visuals():
 		push_error("This character is missing an AnimatedSprite2D node.")
 
 func _process(delta):
-	# Characters with higher Y position (lower on screen) should render in front
 	z_index = int(global_position.y)
 	
 	if is_knocked_back:
@@ -172,21 +170,22 @@ func execute_previous_state(enemies: Array, delta: float, closest_enemy: Node2D)
 func pursue_enemy(delta: float):
 	var direction = (target.position - position).normalized()
 	position += direction * speed * 0.65 * delta
-	position.x = clamp(position.x, -400, 400)
-	position.y = clamp(position.y, -300, 300)
+	position.x = clamp(position.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
+	position.y = clamp(position.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
 
 func retreat_from_enemies(enemies: Array, delta: float):
 	var retreat_direction = Vector2.ZERO
 	var edge_buffer = 30.0
 	var wall_avoidance_strength = 2.0
-	if position.x < -400 + edge_buffer:
+	if position.x < Global.BOUNDS.position.x + edge_buffer:
 		retreat_direction.x += wall_avoidance_strength
-	if position.x > 400 - edge_buffer:
+	if position.x > Global.BOUNDS.end.x - edge_buffer:
 		retreat_direction.x -= wall_avoidance_strength
-	if position.y < -300 + edge_buffer:
+	if position.y < Global.BOUNDS.position.y + edge_buffer:
 		retreat_direction.y += wall_avoidance_strength
-	if position.y > 300 - edge_buffer:
+	if position.y > Global.BOUNDS.end.y - edge_buffer:
 		retreat_direction.y -= wall_avoidance_strength
+
 	var threat_count = 0
 	for enemy in enemies:
 		if is_instance_valid(enemy):
@@ -199,8 +198,8 @@ func retreat_from_enemies(enemies: Array, delta: float):
 	if retreat_direction.length_squared() > 0:
 		retreat_direction = retreat_direction.normalized()
 		position += retreat_direction * speed * retreat_speed_multiplier * delta
-		position.x = clamp(position.x, -400, 400)
-		position.y = clamp(position.y, -300, 300)
+		position.x = clamp(position.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
+		position.y = clamp(position.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
 		retreat_action()
 
 func retreat_action():
@@ -233,15 +232,15 @@ func wander(delta):
 	if distance > 10:
 		var direction = (wander_target - position).normalized()
 		position += direction * speed * 0.5 * delta
-	position.x = clamp(position.x, -400, 400)
-	position.y = clamp(position.y, -300, 300)
+	position.x = clamp(position.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
+	position.y = clamp(position.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
 
 func choose_new_wander_target():
 	var angle = randf_range(0, TAU)
 	var distance = randf_range(50, wander_radius)
 	wander_target = position + Vector2(cos(angle), sin(angle)) * distance
-	wander_target.x = clamp(wander_target.x, -400, 400)
-	wander_target.y = clamp(wander_target.y, -300, 300)
+	wander_target.x = clamp(wander_target.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
+	wander_target.y = clamp(wander_target.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
 
 func take_damage(amount: int, is_crit: bool = false):
 	Global.add_damage_taken(char_name, amount)
@@ -263,8 +262,9 @@ func apply_knockback():
 		knockback_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
 	var start_pos = global_position
 	var end_pos = start_pos + knockback_dir * knockback_distance
-	end_pos.x = clamp(end_pos.x, -400, 400)
-	end_pos.y = clamp(end_pos.y, -300, 300)
+	end_pos.x = clamp(end_pos.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
+	end_pos.y = clamp(end_pos.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
+
 	var tween = create_tween()
 	tween.tween_property(self, "global_position", end_pos, knockback_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	await tween.finished
@@ -272,21 +272,17 @@ func apply_knockback():
 		is_knocked_back = false
 
 func die():
-	# Clean up all spawned effects before dying
 	cleanup_effects()
 	queue_free()
 
 func cleanup_effects():
-	# Remove all tracked effects
 	for effect in spawned_effects:
 		if is_instance_valid(effect):
 			effect.queue_free()
 	spawned_effects.clear()
 
 func register_effect(effect: Node):
-	# Add effect to tracking array
 	spawned_effects.append(effect)
-	# Clean up invalid references
 	spawned_effects = spawned_effects.filter(func(e): return is_instance_valid(e))
 
 func deal_damage_to(enemy: Node2D, amount: int):

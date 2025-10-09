@@ -1,4 +1,5 @@
 extends Node2D
+
 @export var room_scene: PackedScene = preload("res://Scenes/Room/room.tscn")
 @export var enemy_scene: PackedScene
 @export var lobby_scene_path: String = "res://Scenes/lobby.tscn"
@@ -9,8 +10,11 @@ var room_instance: Node = null
 var party: Array = []
 var room_ui: CanvasLayer = null
 var game_over_shown: bool = false
+var ui_layer: CanvasLayer
 
 func _ready():
+	ui_layer = CanvasLayer.new()
+	add_child(ui_layer)
 	setup_room_ui()
 	spawn_party_characters()
 	start_next_room()
@@ -39,15 +43,12 @@ func start_next_room():
 			if character.get_parent():
 				character.get_parent().remove_child(character)
 			temp_party.append(character)
-	
 	party = temp_party
-	
 	if room_instance:
 		room_instance.queue_free()
-	
 	current_room_index += 1
+	Global.last_room_reached = current_room_index
 	var enemy_count: int = get_enemies_for_room(current_room_index)
-	
 	room_instance = room_scene.instantiate()
 	room_instance.position = Vector2.ZERO
 	room_instance.enemy_scene = enemy_scene
@@ -56,10 +57,8 @@ func start_next_room():
 	room_instance.connect("cleared", Callable(self, "_on_room_cleared"))
 	room_instance.connect("room_changed", Callable(room_ui, "update_room_number"))
 	add_child(room_instance)
-	
 	teleport_party_to_room(room_instance)
 	room_instance.start_room()
-	
 	await get_tree().create_timer(0.5).timeout
 
 func teleport_party_to_room(room: Node):
@@ -69,9 +68,15 @@ func teleport_party_to_room(room: Node):
 	for character in party:
 		room.add_child(character)
 		if i < points.size():
-			character.position = points[i].position
+			character.global_position = points[i].global_position
 		else:
-			character.position = Vector2(i * 60, 0)
+			var spacing := 80.0
+			var total_width := party.size() * spacing
+			var start_x := Global.BOUNDS.position.x + (Global.BOUNDS.size.x - total_width) / 2.0
+			var start_y := Global.BOUNDS.position.y + Global.BOUNDS.size.y * 0.3
+			character.global_position = Vector2(start_x + i * spacing, start_y)
+			character.global_position.x = clamp(character.global_position.x, Global.BOUNDS.position.x + 20, Global.BOUNDS.end.x - 20)
+			character.global_position.y = clamp(character.global_position.y, Global.BOUNDS.position.y + 20, Global.BOUNDS.end.y - 20)
 		i += 1
 
 func get_enemies_for_room(idx: int) -> int:
@@ -88,9 +93,11 @@ func show_game_over():
 	if game_over_shown:
 		return
 	game_over_shown = true
+	if is_instance_valid(room_ui):
+		room_ui.visible = false
 	var game_over_scene = load("res://Scenes/GameOver.tscn")
 	var game_over = game_over_scene.instantiate()
-	add_child(game_over)
+	ui_layer.add_child(game_over)
 
 func _on_room_cleared():
 	var buff_scene = load("res://Scenes/BuffSelection.tscn")
@@ -106,7 +113,6 @@ func apply_buff_to_party(buff_name: String):
 	for character in party:
 		if not is_instance_valid(character):
 			continue
-			
 		match buff_name:
 			"Attack Up":
 				if character.get("damage") != null:

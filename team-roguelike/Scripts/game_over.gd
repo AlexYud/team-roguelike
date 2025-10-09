@@ -1,11 +1,22 @@
 extends Control
 
 func _ready():
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	
+	var margin_container = $MarginContainer
+	margin_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin_container.add_theme_constant_override("margin_left", 50)
+	margin_container.add_theme_constant_override("margin_top", 50)
+	margin_container.add_theme_constant_override("margin_right", 50)
+	margin_container.add_theme_constant_override("margin_bottom", 50)
+	
 	$MarginContainer/MainContainer/Title.text = "GAME OVER"
-	$MarginContainer/MainContainer/OverallStats.text = "Total Enemies Killed: %d\nTotal Damage Dealt: %d\nTotal Damage Taken: %d" % [
+	$MarginContainer/MainContainer/OverallStats.text = "Total Enemies Killed: %d\nTotal Damage Dealt: %d\nTotal Damage Taken: %d\nSouls Collected: %d\nLast Room: %d" % [
 		Global.total_enemies_killed,
 		Global.total_damage_dealt,
-		Global.total_damage_taken
+		Global.total_damage_taken,
+		Global.souls_collected,
+		Global.last_room_reached
 	]
 	var char_container = $MarginContainer/MainContainer/ScrollContainer/CharacterStats
 	for char_name in Global.character_stats.keys():
@@ -17,6 +28,8 @@ func _ready():
 			stats["damage_dealt"],
 			stats["damage_taken"]
 		]
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		char_container.add_child(label)
 	$MarginContainer/MainContainer/ReturnButton.connect("pressed", Callable(self, "_on_return_pressed"))
 
