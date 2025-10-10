@@ -55,11 +55,15 @@ func start_next_room():
 	room_instance.enemy_count = enemy_count
 	room_instance.current_room = current_room_index
 	room_instance.connect("cleared", Callable(self, "_on_room_cleared"))
-	room_instance.connect("room_changed", Callable(room_ui, "update_room_number"))
+	room_instance.connect("room_changed", Callable(self, "_on_room_changed"))
 	add_child(room_instance)
 	teleport_party_to_room(room_instance)
 	room_instance.start_room()
 	await get_tree().create_timer(0.5).timeout
+
+func _on_room_changed(room_number: int):
+	if is_instance_valid(room_ui):
+		room_ui.update_room_number(room_number)
 
 func teleport_party_to_room(room: Node):
 	var spawn_points_node = room.get_node_or_null("CharacterSpawnPoints")

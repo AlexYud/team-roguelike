@@ -93,7 +93,7 @@ func _start_movement() -> void:
 	tw.tween_property(self, "_travel_progress", 1.0, travel_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.parallel().tween_property(_core, "scale", Vector2(0.5, 0.5), travel_time)
 	tw.parallel().tween_property(self, "modulate:a", 0.0, travel_time * 0.9)
-	tw.tween_callback(Callable(self, "_on_reached_target"))
+	tw.connect("finished", Callable(self, "_on_reached_target"))
 
 func _update_wavy_movement(delta: float) -> void:
 	var base_pos = _start_position.lerp(target_position, _travel_progress)
@@ -124,16 +124,13 @@ func _create_trail_particle() -> void:
 	trail.global_position = global_position + Vector2(randf_range(-5, 5), randf_range(-5, 5))
 	trail.z_index = 1998
 	get_parent().add_child(trail)
-	_trail_particles.append(trail)
 	
 	var tw = create_tween()
 	tw.tween_property(trail, "modulate:a", 0.0, 0.4)
 	tw.parallel().tween_property(trail, "scale", Vector2(0.3, 0.3), 0.4)
-	tw.tween_callback(func(): 
-		if is_instance_valid(trail):
-			_trail_particles.erase(trail)
-			trail.queue_free()
-	)
+	await tw.finished
+	if is_instance_valid(trail):
+		trail.queue_free()
 
 func _on_reached_target() -> void:
 	var room_ui = get_tree().get_first_node_in_group("room_ui")
@@ -149,18 +146,15 @@ func _on_reached_target() -> void:
 	
 	for trail in _trail_particles:
 		if is_instance_valid(trail):
-			var quick_fade = create_tween()
-			quick_fade.tween_property(trail, "modulate:a", 0.0, 0.1)
-			quick_fade.tween_callback(func():
-				if is_instance_valid(trail):
-					trail.queue_free()
-			)
+			trail.queue_free()
 	_trail_particles.clear()
 	
 	var final_tween = create_tween()
 	final_tween.tween_property(_core, "scale", Vector2(2.0, 2.0), 0.15)
 	final_tween.parallel().tween_property(self, "modulate:a", 0.0, 0.15)
-	final_tween.tween_callback(queue_free)
+	await final_tween.finished
+	if is_instance_valid(self):
+		queue_free()
 
 func _create_circle_texture(radius: int, color: Color) -> ImageTexture:
 	var size = radius * 2

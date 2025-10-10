@@ -83,9 +83,14 @@ func _process(delta):
 			is_attacking = false
 
 func attack_flash():
+	if not is_instance_valid(sprite):
+		return
 	sprite.modulate = Color.ORANGE
-	await get_tree().create_timer(0.1).timeout
-	if is_instance_valid(self):
+	var timer = get_tree().create_timer(0.1)
+	timer.connect("timeout", Callable(self, "_reset_flash"))
+
+func _reset_flash():
+	if is_instance_valid(self) and is_instance_valid(sprite):
 		sprite.modulate = original_color
 
 func take_damage(amount: int, is_crit: bool = false) -> bool:
@@ -123,14 +128,21 @@ func apply_knockback():
 	
 	var tween = create_tween()
 	tween.tween_property(self, "global_position", end_pos, knockback_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	await tween.finished
+	tween.connect("finished", Callable(self, "_on_knockback_finished"))
+
+func _on_knockback_finished():
 	if is_instance_valid(self):
 		is_knocked_back = false
 
 func damage_flash():
+	if not is_instance_valid(sprite):
+		return
 	sprite.modulate = Color.WHITE * 2
-	await get_tree().create_timer(0.1).timeout
-	if is_instance_valid(self):
+	var timer = get_tree().create_timer(0.1)
+	timer.connect("timeout", Callable(self, "_reset_damage_flash"))
+
+func _reset_damage_flash():
+	if is_instance_valid(self) and is_instance_valid(sprite):
 		sprite.modulate = original_color
 
 func spawn_damage_number(amount: int, is_crit: bool = false):
@@ -181,6 +193,8 @@ class DamageNumber extends Node2D:
 		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.12)
 		tween.tween_property(self, "global_position", global_position + Vector2(0, -40), 0.6)
 		tween.tween_property(self, "modulate:a", 0.0, 0.6)
-		await tween.finished
+		tween.connect("finished", Callable(self, "_on_animation_finished"))
+	
+	func _on_animation_finished():
 		if is_instance_valid(self):
 			queue_free()
