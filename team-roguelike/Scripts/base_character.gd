@@ -23,16 +23,13 @@ var wander_target: Vector2
 var current_state: String = "idle"
 var previous_state: String = "idle"
 var is_knocked_back: bool = false
-
 var animated_sprite: AnimatedSprite2D
 var original_color: Color = Color.WHITE
 var char_name: String = ""
-
 var is_moving: bool = false
 var last_position: Vector2
 var idle_frames: int = 0
 var idle_threshold: int = 150
-
 var spawned_effects: Array = []
 
 func _ready():
@@ -53,15 +50,11 @@ func setup_visuals():
 		animated_sprite.z_as_relative = true
 		animated_sprite.z_index = 0
 		original_color = animated_sprite.modulate
-	else:
-		push_error("This character is missing an AnimatedSprite2D node.")
 
 func _process(delta):
 	z_index = int(global_position.y)
-	
 	if is_knocked_back:
 		return
-	
 	attack_timer -= delta
 	reaction_timer -= delta
 	wander_timer -= delta
@@ -70,10 +63,7 @@ func _process(delta):
 	last_position = position
 	update_ability_timers(delta)
 	var enemies = get_tree().get_nodes_in_group("enemies")
-	if enemies.size() > 0:
-		target = find_closest_enemy(enemies)
-	else:
-		target = null
+	target = find_closest_enemy(enemies) if enemies.size() > 0 else null
 	if animated_sprite:
 		animated_sprite.modulate = original_color
 	if target and is_instance_valid(target):
@@ -92,13 +82,7 @@ func update_animation():
 		new_anim = "walking"
 	else:
 		idle_frames += 1
-		if idle_frames < idle_threshold:
-			new_anim = "idle"
-		else:
-			if animated_sprite.sprite_frames.has_animation("breathe"):
-				new_anim = "breathe"
-			else:
-				new_anim = "idle"
+		new_anim = "breathe" if idle_frames >= idle_threshold and animated_sprite.sprite_frames.has_animation("breathe") else "idle"
 	if animated_sprite.animation != new_anim:
 		animated_sprite.play(new_anim)
 
@@ -110,36 +94,65 @@ func update_sprite_direction():
 	elif current_state == "wandering":
 		look_at_pos = wander_target
 	if look_at_pos != Vector2.ZERO:
-		if look_at_pos.x < global_position.x:
-			animated_sprite.flip_h = true
-		elif look_at_pos.x > global_position.x:
-			animated_sprite.flip_h = false
+		animated_sprite.flip_h = look_at_pos.x < global_position.x
 
 func update_ability_timers(_delta: float):
 	pass
 
 func find_closest_enemy(enemies: Array) -> Node2D:
-	var closest = null
-	var min_dist = INF
+	var best: Node2D = null
+	var best_score: float = -1e12
 	for e in enemies:
-		if is_instance_valid(e):
-			var dist = position.distance_squared_to(e.position)
-			if dist < min_dist:
-				min_dist = dist
-				closest = e
-	return closest
+		var enemy := e as Node2D
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		var d_self := position.distance_to(enemy.position)
+		var score := -d_self
+		var et = enemy.get("target")
+		if et != null and et != self and et is Node and (et as Node).is_in_group("characters"):
+			score += 600.0
+			var et_pos: Vector2 = (et as Node2D).global_position if et is Node2D else enemy.position
+			var e_ar: float = float(enemy.get("attack_range")) if enemy.get("attack_range") != null else 50.0
+			var et_dist := et_pos.distance_to(enemy.global_position)
+			if et_dist <= e_ar * 1.15:
+				score += 250.0
+			var ally_hp_val = et.get("health") if (et is Object) else null
+			if ally_hp_val != null and int(ally_hp_val) <= 30:
+				score += 120.0
+		if d_self <= attack_range * 1.4:
+			score += 60.0
+		if score > best_score:
+			best_score = score
+			best = enemy
+	return best
 
 func handle_combat(enemies: Array, delta: float):
+	if target == null or not is_instance_valid(target):
+		return
+	var closest_enemy := find_closest_enemy(enemies)
+	if closest_enemy == null:
+		return
 	var distance_to_target = position.distance_to(target.position)
-	var closest_enemy = find_closest_enemy(enemies)
 	var closest_enemy_distance = position.distance_to(closest_enemy.position)
+	var target_is_attacking_ally := false
+	var t = target.get("target")
+	if t != null and t != self and t is Node and (t as Node).is_in_group("characters"):
+		target_is_attacking_ally = true
 	var new_state = "idle"
-	if closest_enemy_distance < safe_distance:
-		new_state = "retreating"
-	elif distance_to_target > attack_range + 80:
-		new_state = "pursuing"
+	if target_is_attacking_ally:
+		if closest_enemy_distance < safe_distance * 0.6:
+			new_state = "retreating"
+		elif distance_to_target > attack_range * 0.5:
+			new_state = "assist_pursuit"
+		else:
+			new_state = "combat"
 	else:
-		new_state = "combat"
+		if closest_enemy_distance < safe_distance:
+			new_state = "retreating"
+		elif distance_to_target > attack_range + 80:
+			new_state = "pursuing"
+		else:
+			new_state = "combat"
 	if new_state != current_state:
 		previous_state = current_state
 		current_state = new_state
@@ -149,74 +162,65 @@ func handle_combat(enemies: Array, delta: float):
 	else:
 		execute_previous_state(enemies, delta * 0.5, closest_enemy)
 
-func execute_state(enemies: Array, delta: float, closest_enemy: Node2D):
+func execute_state(enemies: Array, delta: float, _closest_enemy: Node2D):
 	match current_state:
-		"retreating":
-			retreat_from_enemies(enemies, delta)
-		"pursuing":
-			pursue_enemy(delta)
-		"combat":
-			combat_stance(enemies, delta)
+		"retreating": retreat_from_enemies(enemies, delta)
+		"pursuing": pursue_enemy(delta)
+		"assist_pursuit": pursue_enemy_assist(delta)
+		"combat": combat_stance(enemies, delta)
 
-func execute_previous_state(enemies: Array, delta: float, closest_enemy: Node2D):
+func execute_previous_state(enemies: Array, delta: float, _closest_enemy: Node2D):
 	match previous_state:
-		"retreating":
-			retreat_from_enemies(enemies, delta)
-		"pursuing":
-			pursue_enemy(delta)
-		"combat":
-			combat_stance(enemies, delta)
+		"retreating": retreat_from_enemies(enemies, delta)
+		"pursuing": pursue_enemy(delta)
+		"assist_pursuit": pursue_enemy_assist(delta)
+		"combat": combat_stance(enemies, delta)
 
 func pursue_enemy(delta: float):
 	var direction = (target.position - position).normalized()
-	position += direction * speed * 0.65 * delta
-	position.x = clamp(position.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
-	position.y = clamp(position.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
+	move_with_boundary_slide(direction, 0.65, delta)
+
+func pursue_enemy_assist(delta: float):
+	var direction = (target.position - position).normalized()
+	move_with_boundary_slide(direction, 0.95, delta)
 
 func retreat_from_enemies(enemies: Array, delta: float):
 	var retreat_direction = Vector2.ZERO
-	var edge_buffer = 30.0
-	var wall_avoidance_strength = 2.0
-	if position.x < Global.BOUNDS.position.x + edge_buffer:
-		retreat_direction.x += wall_avoidance_strength
-	if position.x > Global.BOUNDS.end.x - edge_buffer:
-		retreat_direction.x -= wall_avoidance_strength
-	if position.y < Global.BOUNDS.position.y + edge_buffer:
-		retreat_direction.y += wall_avoidance_strength
-	if position.y > Global.BOUNDS.end.y - edge_buffer:
-		retreat_direction.y -= wall_avoidance_strength
-
-	var threat_count = 0
+	var edge_influence_max = safe_distance * 1.5
 	for enemy in enemies:
 		if is_instance_valid(enemy):
 			var distance = position.distance_to(enemy.position)
-			if distance < safe_distance * 1.5:
-				var away_direction = (position - enemy.position).normalized()
-				var threat_weight = 1.0 - (distance / (safe_distance * 1.5))
-				retreat_direction += away_direction * threat_weight
-				threat_count += 1
+			if distance < edge_influence_max:
+				retreat_direction += (position - enemy.position).normalized() * (1.0 - (distance / edge_influence_max))
 	if retreat_direction.length_squared() > 0:
 		retreat_direction = retreat_direction.normalized()
-		position += retreat_direction * speed * retreat_speed_multiplier * delta
-		position.x = clamp(position.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
-		position.y = clamp(position.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
+		move_with_boundary_slide(retreat_direction, retreat_speed_multiplier, delta)
 		retreat_action()
+
+func avoid_boundaries(direction: Vector2):
+	var edge_margin = 100.0
+	if position.x < Global.BOUNDS.position.x + edge_margin: direction.x = abs(direction.x)
+	if position.x > Global.BOUNDS.end.x - edge_margin: direction.x = -abs(direction.x)
+	if position.y < Global.BOUNDS.position.y + edge_margin: direction.y = abs(direction.y)
+	if position.y > Global.BOUNDS.end.y - edge_margin: direction.y = -abs(direction.y)
+
+func clamp_position():
+	position.x = clamp(position.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
+	position.y = clamp(position.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
 
 func retreat_action():
 	pass
 
 func combat_stance(enemies: Array, delta: float):
-	if not is_instance_valid(target):
-		return
+	if not is_instance_valid(target): return
 	var distance_to_target = position.distance_to(target.position)
 	if distance_to_target > attack_range:
 		var direction = (target.position - position).normalized()
-		position += direction * speed * 0.8 * delta
+		move_with_boundary_slide(direction, 0.8, delta)
 	else:
-		if not use_abilities(enemies):
-			if attack_timer <= 0:
-				attack_timer = attack_cooldown
-				basic_attack(target)
+		if not use_abilities(enemies) and attack_timer <= 0:
+			attack_timer = attack_cooldown
+			basic_attack(target)
 
 func use_abilities(enemies: Array) -> bool:
 	return false
@@ -231,16 +235,14 @@ func wander(delta):
 	var distance = position.distance_to(wander_target)
 	if distance > 10:
 		var direction = (wander_target - position).normalized()
-		position += direction * speed * 0.5 * delta
-	position.x = clamp(position.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
-	position.y = clamp(position.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
+		move_with_boundary_slide(direction, 0.5, delta)
+	clamp_position()
 
 func choose_new_wander_target():
 	var angle = randf_range(0, TAU)
 	var distance = randf_range(50, wander_radius)
 	wander_target = position + Vector2(cos(angle), sin(angle)) * distance
-	wander_target.x = clamp(wander_target.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
-	wander_target.y = clamp(wander_target.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
+	clamp_position()
 
 func take_damage(amount: int, is_crit: bool = false):
 	Global.add_damage_taken(char_name, amount)
@@ -248,28 +250,19 @@ func take_damage(amount: int, is_crit: bool = false):
 	damage_flash()
 	spawn_damage_number(amount, is_crit)
 	apply_knockback()
-	if health <= 0:
-		die()
+	if health <= 0: die()
 
 func apply_knockback():
-	if is_knocked_back:
-		return
+	if is_knocked_back: return
 	is_knocked_back = true
-	var knockback_dir = Vector2.ZERO
-	if target and is_instance_valid(target):
-		knockback_dir = (global_position - target.global_position).normalized()
-	else:
-		knockback_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
-	var start_pos = global_position
-	var end_pos = start_pos + knockback_dir * knockback_distance
+	var knockback_dir = (global_position - target.global_position).normalized() if target and is_instance_valid(target) else Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
+	var end_pos = global_position + knockback_dir * knockback_distance
 	end_pos.x = clamp(end_pos.x, Global.BOUNDS.position.x, Global.BOUNDS.end.x)
 	end_pos.y = clamp(end_pos.y, Global.BOUNDS.position.y, Global.BOUNDS.end.y)
-
 	var tween = create_tween()
 	tween.tween_property(self, "global_position", end_pos, knockback_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	await tween.finished
-	if is_instance_valid(self):
-		is_knocked_back = false
+	if is_instance_valid(self): is_knocked_back = false
 
 func die():
 	cleanup_effects()
@@ -277,8 +270,7 @@ func die():
 
 func cleanup_effects():
 	for effect in spawned_effects:
-		if is_instance_valid(effect):
-			effect.queue_free()
+		if is_instance_valid(effect): effect.queue_free()
 	spawned_effects.clear()
 
 func register_effect(effect: Node):
@@ -288,14 +280,17 @@ func register_effect(effect: Node):
 func deal_damage_to(enemy: Node2D, amount: int):
 	if enemy.has_method("take_damage"):
 		var final_damage = amount
-		var is_crit = false
-		if randf() < crit_chance:
+		var is_crit = randf() < crit_chance
+		if is_crit:
 			final_damage = int(amount * crit_damage_multiplier)
-			is_crit = true
-		var died = enemy.take_damage(final_damage, is_crit)
+		var died: bool = enemy.take_damage(final_damage, is_crit)
 		Global.add_damage_dealt(char_name, final_damage)
 		if died:
 			Global.add_enemy_killed(char_name)
+			on_enemy_killed()
+
+func on_enemy_killed():
+	pass
 
 func damage_flash():
 	if not animated_sprite: return
@@ -357,3 +352,62 @@ class DamageNumber extends Node2D:
 			modulate.a = lifetime / fade_start
 		if lifetime <= 0:
 			queue_free()
+
+func move_with_boundary_slide(direction: Vector2, speed_multiplier: float, delta: float):
+	if direction == Vector2.ZERO:
+		return
+	var dir = direction.normalized()
+	var vel = dir * speed * speed_multiplier * delta
+	var minx = Global.BOUNDS.position.x
+	var maxx = Global.BOUNDS.end.x
+	var miny = Global.BOUNDS.position.y
+	var maxy = Global.BOUNDS.end.y
+	var next = position + vel
+	var clamped = Vector2(clamp(next.x, minx, maxx), clamp(next.y, miny, maxy))
+	var moved = clamped - position
+	if moved.length_squared() < 0.0001:
+		var slide_dir = compute_slide_direction(dir).normalized()
+		var alt_vel = slide_dir * speed * speed_multiplier * delta
+		var alt_next = position + alt_vel
+		var alt_clamped = Vector2(clamp(alt_next.x, minx, maxx), clamp(alt_next.y, miny, maxy))
+		var alt_moved = alt_clamped - position
+		if alt_moved.length_squared() > moved.length_squared():
+			position = alt_clamped
+		else:
+			var ortho = Vector2(-dir.y, dir.x)
+			if randf() < 0.5:
+				ortho = -ortho
+			var jitter_vel = ortho * speed * speed_multiplier * 0.6 * delta
+			var j_next = position + jitter_vel
+			var j_clamped = Vector2(clamp(j_next.x, minx, maxx), clamp(j_next.y, miny, maxy))
+			position = j_clamped
+	else:
+		position = clamped
+
+func compute_slide_direction(direction: Vector2) -> Vector2:
+	var minx = Global.BOUNDS.position.x
+	var maxx = Global.BOUNDS.end.x
+	var miny = Global.BOUNDS.position.y
+	var maxy = Global.BOUNDS.end.y
+	var near_eps = 4.0
+	var near_left = position.x <= minx + near_eps
+	var near_right = position.x >= maxx - near_eps
+	var near_top = position.y <= miny + near_eps
+	var near_bottom = position.y >= maxy - near_eps
+	if (near_left or near_right) and (near_top or near_bottom):
+		var center = (Global.BOUNDS.position + Global.BOUNDS.end) * 0.5
+		return (center - position).normalized()
+	if near_left or near_right:
+		var sy = 1.0 if direction.y >= 0.0 else -1.0
+		if near_top: sy = 1.0
+		if near_bottom: sy = -1.0
+		return Vector2(0, sy)
+	if near_top or near_bottom:
+		var sx = 1.0 if direction.x >= 0.0 else -1.0
+		if near_left: sx = 1.0
+		if near_right: sx = -1.0
+		return Vector2(sx, 0)
+	var ortho = Vector2(-direction.y, direction.x)
+	if randf() < 0.5:
+		ortho = -ortho
+	return ortho.normalized()

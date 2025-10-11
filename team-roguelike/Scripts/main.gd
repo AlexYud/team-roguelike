@@ -81,6 +81,9 @@ func teleport_party_to_room(room: Node):
 			character.global_position = Vector2(start_x + i * spacing, start_y)
 			character.global_position.x = clamp(character.global_position.x, Global.BOUNDS.position.x + 20, Global.BOUNDS.end.x - 20)
 			character.global_position.y = clamp(character.global_position.y, Global.BOUNDS.position.y + 20, Global.BOUNDS.end.y - 20)
+		if character.get_meta("char_name") == "Labuba":
+			if character.has_method("restart_for_new_room"):
+				character.restart_for_new_room()
 		i += 1
 
 func get_enemies_for_room(idx: int) -> int:
@@ -106,31 +109,41 @@ func show_game_over():
 func _on_room_cleared():
 	var buff_scene = load("res://Scenes/BuffSelection.tscn")
 	var buff_selection = buff_scene.instantiate()
+	if buff_selection.has_method("init_with_party"):
+		buff_selection.init_with_party(party)
+	elif "party" in buff_selection:
+		buff_selection.party = party
 	add_child(buff_selection)
-	buff_selection.connect("buff_selected", Callable(self, "_on_buff_selected"))
+	if buff_selection.has_signal("upgrade_selected"):
+		buff_selection.connect("upgrade_selected", Callable(self, "_on_upgrade_selected"))
 
-func _on_buff_selected(buff_name: String):
-	apply_buff_to_party(buff_name)
+func _on_upgrade_selected(payload):
+	apply_upgrade_to_party(payload)
 	start_next_room()
 
-func apply_buff_to_party(buff_name: String):
-	for character in party:
-		if not is_instance_valid(character):
-			continue
-		match buff_name:
-			"Attack Up":
-				if character.get("damage") != null:
-					character.damage += 10
-			"Speed Up":
-				if character.get("speed") != null:
-					character.speed *= 1.2
-			"Health Up":
-				if character.get("max_health") != null:
-					character.max_health += 50
-					character.health += 50
-			"Attack Speed":
-				if character.get("attack_cooldown") != null:
-					character.attack_cooldown *= 0.8
-			"Range Up":
-				if character.get("attack_range") != null:
-					character.attack_range *= 1.3
+func apply_upgrade_to_party(payload):
+	if typeof(payload) == TYPE_DICTIONARY:
+		var name := String(payload.get("char_name",""))
+		var upg := String(payload.get("upgrade_id",""))
+		var ch := _find_character_by_name(name)
+		if ch == null:
+			return
+		if ch.has_method("apply_upgrade"):
+			ch.apply_upgrade(upg)
+			return
+		match upg:
+			"generic_speed":
+				if ch.get("speed") != null:
+					ch.speed *= 1.15
+			"generic_damage":
+				if ch.get("damage") != null:
+					ch.damage = int(ch.damage * 1.2)
+			"generic_range":
+				if ch.get("attack_range") != null:
+					ch.attack_range *= 1.2
+
+func _find_character_by_name(n: String) -> Node2D:
+	for c in party:
+		if is_instance_valid(c) and String(c.get_meta("char_name","")) == n:
+			return c
+	return null

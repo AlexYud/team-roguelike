@@ -49,3 +49,21 @@ position = Vector2(780, 675)
 
 [node name="Marker2D6" type="Marker2D" parent="MonsterSpawnPoints"]
 position = Vector2(780, 175)
+
+[node name="Marker2D7" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(1100, 175)
+
+[node name="Marker2D8" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(470, 175)
+
+[node name="Marker2D9" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(175, 420)
+
+[node name="Marker2D10" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(470, 675)
+
+[node name="Marker2D11" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(1100, 675)
+
+[node name="Marker2D12" type="Marker2D" parent="MonsterSpawnPoints"]
+position = Vector2(1375, 420)

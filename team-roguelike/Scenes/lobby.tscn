@@ -391,7 +391,7 @@ layout_mode = 2
 size_flags_horizontal = 7
 size_flags_vertical = 10
 toggle_mode = true
-text = "Labuba"
+text = "Linguis"
 
 [node name="ClericButton" type="Button" parent="MarginContainer/CharacterGrid"]
 custom_minimum_size = Vector2(0, 100)
@@ -423,18 +423,17 @@ scale = Vector2(0.3, 0.3)
 sprite_frames = SubResource("SpriteFrames_gdlty")
 animation = &"breathe"
 
+[node name="AnimatedSprite2D3" type="AnimatedSprite2D" parent="."]
+position = Vector2(711, 450)
+scale = Vector2(0.3, 0.3)
+sprite_frames = SubResource("SpriteFrames_gdlty")
+animation = &"breathe"
+
 [node name="AnimatedSprite2D2" type="AnimatedSprite2D" parent="."]
 position = Vector2(176, 449)
 scale = Vector2(0.3, 0.3)
 sprite_frames = SubResource("SpriteFrames_jjrc4")
 animation = &"walking"
-
-[node name="AnimatedSprite2D3" type="AnimatedSprite2D" parent="."]
-position = Vector2(714, 450)
-scale = Vector2(0.3, 0.3)
-sprite_frames = SubResource("SpriteFrames_jjrc4")
-animation = &"breathe"
-frame_progress = 0.5791619
 
 [node name="AnimatedSprite2D4" type="AnimatedSprite2D" parent="."]
 position = Vector2(981, 449)
