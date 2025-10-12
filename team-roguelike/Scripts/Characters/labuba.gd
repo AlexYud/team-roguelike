@@ -5,7 +5,7 @@ extends "res://Scripts/base_character.gd"
 @export var orb_growth_interval: float = 5.0
 @export var orb_regen_interval: float = 2.5
 @export var orb_radius: float = 120
-@export var orb_speed: float = 0.9
+@export var orb_speed: float = 2
 @export var orb_damage: int = 16
 @export var orb_hit_cooldown: float = 0.6
 @export var orb_base_hit_radius: float = 28.0
@@ -22,7 +22,7 @@ extends "res://Scripts/base_character.gd"
 @export var ember_cooldown: float = 8.0
 
 @export var ember_cost: int = 200
-@export var fury_per_hit: int = 1
+@export var fury_per_hit: int = 5
 @export var max_fury: int = 999
 
 var bloom_timer: float = 0.0
@@ -74,7 +74,7 @@ func use_abilities(enemies: Array) -> bool:
 	if basic_unlocked and not bloom_active and bloom_timer <= 0.0 and _should_bloom(enemies):
 		cast_bloom()
 		return true
-	if ult_unlocked and ember_cd_timer <= 0.0 and orbs.size() > 0 and fury >= ember_cost:
+	if ult_unlocked and auto_ult_enabled and ember_cd_timer <= 0.0 and orbs.size() > 0 and fury >= ember_cost:
 		var count = orbs.size()
 		var radius = ember_base_radius + ember_radius_per_orb * count
 		var in_blast := 0
@@ -270,7 +270,6 @@ class Orb extends Node2D:
 	var base_hit_radius: float = 28.0
 	var sprite: Sprite2D
 	var _cool: Dictionary = {}
-
 	func _ready():
 		sprite = Sprite2D.new()
 		add_child(sprite)
@@ -278,16 +277,13 @@ class Orb extends Node2D:
 		img.fill(Color.ORANGE)
 		sprite.texture = ImageTexture.create_from_image(img)
 		_apply_visual()
-
 	func set_hit_radius(r: float):
 		hit_radius = max(10.0, r)
 		_apply_visual()
-
 	func _apply_visual():
 		if sprite:
 			var s = hit_radius / base_hit_radius if base_hit_radius > 0.0 else 1.0
 			sprite.scale = Vector2(s, s)
-
 	func _process(delta):
 		var keys = _cool.keys()
 		for k in keys:
@@ -304,3 +300,10 @@ class Orb extends Node2D:
 						if caster.has_method("add_fury"):
 							caster.add_fury(caster.fury_per_hit)
 					_cool[id] = hit_cooldown
+
+func set_auto_ult_enabled(v: bool):
+	auto_ult_enabled = v
+
+func trigger_ult():
+	if ult_unlocked and ember_cd_timer <= 0.0 and orbs.size() > 0 and fury >= ember_cost:
+		cast_ember_cataclysm()

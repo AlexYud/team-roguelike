@@ -11,17 +11,24 @@ var party: Array = []
 var room_ui: CanvasLayer = null
 var game_over_shown: bool = false
 var ui_layer: CanvasLayer
+var autoplay_ult_enabled: bool = true
 
 func _ready():
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
 	setup_room_ui()
 	spawn_party_characters()
+	if is_instance_valid(room_ui) and room_ui.has_method("configure_for_party"):
+		room_ui.configure_for_party(party)
 	start_next_room()
 
 func setup_room_ui():
 	room_ui = room_ui_scene.instantiate()
 	add_child(room_ui)
+	if room_ui.has_signal("autoplay_toggled"):
+		room_ui.connect("autoplay_toggled", Callable(self, "_on_autoplay_toggled"))
+	if room_ui.has_signal("ult_pressed"):
+		room_ui.connect("ult_pressed", Callable(self, "_on_ult_pressed"))
 
 func spawn_party_characters():
 	for char_name in Global.selected_characters:
@@ -58,6 +65,9 @@ func start_next_room():
 	room_instance.connect("room_changed", Callable(self, "_on_room_changed"))
 	add_child(room_instance)
 	teleport_party_to_room(room_instance)
+	_apply_autoplay_flag_to_party()
+	if is_instance_valid(room_ui) and room_ui.has_method("configure_for_party"):
+		room_ui.configure_for_party(party)
 	room_instance.start_room()
 	await get_tree().create_timer(0.5).timeout
 
@@ -147,3 +157,24 @@ func _find_character_by_name(n: String) -> Node2D:
 		if is_instance_valid(c) and String(c.get_meta("char_name","")) == n:
 			return c
 	return null
+
+func _on_autoplay_toggled(enabled: bool):
+	autoplay_ult_enabled = enabled
+	_apply_autoplay_flag_to_party()
+
+func _apply_autoplay_flag_to_party():
+	for c in party:
+		if is_instance_valid(c):
+			if c.has_method("set_auto_ult_enabled"):
+				c.set_auto_ult_enabled(autoplay_ult_enabled)
+			elif c.has_variable("auto_ult_enabled"):
+				c.auto_ult_enabled = autoplay_ult_enabled
+
+func _on_ult_pressed(index: int):
+	if index < 0 or index >= party.size():
+		return
+	var ch: Node2D = party[index]
+	if not is_instance_valid(ch):
+		return
+	if ch.has_method("trigger_ult"):
+		ch.trigger_ult()

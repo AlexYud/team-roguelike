@@ -31,6 +31,7 @@ var last_position: Vector2
 var idle_frames: int = 0
 var idle_threshold: int = 150
 var spawned_effects: Array = []
+var auto_ult_enabled: bool = true
 
 func _ready():
 	add_to_group("characters")
@@ -411,3 +412,9 @@ func compute_slide_direction(direction: Vector2) -> Vector2:
 	if randf() < 0.5:
 		ortho = -ortho
 	return ortho.normalized()
+
+func set_auto_ult_enabled(v: bool):
+	auto_ult_enabled = v
+
+func trigger_ult():
+	return false

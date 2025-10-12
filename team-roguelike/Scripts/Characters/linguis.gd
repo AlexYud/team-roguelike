@@ -13,7 +13,7 @@ extends "res://Scripts/base_character.gd"
 @export var frenzy_lifesteal: float = 0.15
 @export var frenzy_fury_cost: int = 100
 
-@export var fury_per_hit: int = 2
+@export var fury_per_hit: int = 5
 @export var max_fury: int = 999
 
 @export var swing_duration: float = 0.25
@@ -44,7 +44,7 @@ func character_ready() -> void:
 	speed = 180.0
 	attack_range = 80.0
 	attack_cooldown = 1.0
-	damage = 22
+	damage = 7
 	health = 140
 	max_health = 140
 	safe_distance = 0.0
@@ -73,7 +73,7 @@ func update_ability_timers(delta: float) -> void:
 func use_abilities(enemies: Array) -> bool:
 	if enemies.is_empty():
 		return false
-	if ult_unlocked and (not is_frenzy) and fury >= frenzy_fury_cost and (_is_surrounded(enemies) or health <= max_health * 0.5):
+	if ult_unlocked and auto_ult_enabled and (not is_frenzy) and fury >= frenzy_fury_cost and (_is_surrounded(enemies) or health <= max_health * 0.5):
 		_start_frenzy()
 		return true
 	if basic_unlocked and slam_timer <= 0.0:
@@ -347,3 +347,10 @@ func apply_upgrade(upg: String) -> void:
 			crit_chance = min(0.95, crit_chance + 0.05)
 		"linguis_critdmg":
 			crit_damage_multiplier += 0.25
+
+func set_auto_ult_enabled(v: bool):
+	auto_ult_enabled = v
+
+func trigger_ult():
+	if ult_unlocked and not is_frenzy and fury >= frenzy_fury_cost:
+		_start_frenzy()

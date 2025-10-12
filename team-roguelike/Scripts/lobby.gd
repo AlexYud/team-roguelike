@@ -6,18 +6,15 @@ extends Control
 var animated_sprites: Array[AnimatedSprite2D] = []
 var selected_characters: Array[String] = []
 
-# Breathe animation tracking
 var idle_frames: int = 0
 var idle_threshold: int = 150
 
 func _ready():
-	# Get all AnimatedSprite2D nodes
 	animated_sprites.append($AnimatedSprite2D)
 	animated_sprites.append($AnimatedSprite2D2)
 	animated_sprites.append($AnimatedSprite2D3)
 	animated_sprites.append($AnimatedSprite2D4)
 	
-	# Start all sprites with idle animation
 	for sprite in animated_sprites:
 		if sprite:
 			sprite.play("breathe")
@@ -31,7 +28,6 @@ func _ready():
 func _process(_delta):
 	idle_frames += 1
 	
-	# Update all sprite animations
 	for sprite in animated_sprites:
 		if sprite:
 			if idle_frames < idle_threshold:
@@ -43,7 +39,6 @@ func _process(_delta):
 						sprite.play("breathe")
 
 func _on_character_pressed(character_name: String):
-	# Reset idle counter when user interacts
 	idle_frames = 0
 	
 	if selected_characters.size() < 3:
