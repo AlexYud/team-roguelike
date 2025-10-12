@@ -64,14 +64,14 @@ func _build_options() -> Array[Dictionary]:
 					"char_name": name,
 					"upgrade_id": "labuba_basic",
 					"title": "Labuba — Unlock Infernal Bloom",
-					"description": "Enable her orb-speed burst."
+					"description": "Enable orb-speed burst."
 				})
 			elif not ult_ready:
 				opts.append({
 					"char_name": name,
 					"upgrade_id": "labuba_ult",
 					"title": "Labuba — Unlock Ember Cataclysm",
-					"description": "Enable her explosive ultimate."
+					"description": "Enable explosive ultimate."
 				})
 			else:
 				var pool: Array[Dictionary] = [
@@ -83,6 +83,40 @@ func _build_options() -> Array[Dictionary]:
 				]
 				pool.shuffle()
 				opts.append(pool[0])
+
+		elif name == "Linguis":
+			var basic_ready_l: bool = false
+			if c.has_method("is_basic_unlocked"):
+				basic_ready_l = bool(c.call("is_basic_unlocked"))
+			var ult_ready_l: bool = false
+			if c.has_method("is_ult_unlocked"):
+				ult_ready_l = bool(c.call("is_ult_unlocked"))
+
+			if not basic_ready_l:
+				opts.append({
+					"char_name": name,
+					"upgrade_id": "linguis_basic",
+					"title": "Linguis — Unlock Crimson Slam",
+					"description": "Radial shockwave crowd control."
+				})
+			elif not ult_ready_l:
+				opts.append({
+					"char_name": name,
+					"upgrade_id": "linguis_ult",
+					"title": "Linguis — Unlock Blood Frenzy",
+					"description": "Berserk mode with lifesteal."
+				})
+			else:
+				var pool_l: Array[Dictionary] = [
+					{"char_name": name, "upgrade_id": "linguis_speed",   "title": "Linguis — +15% Move Speed", "description": "Close gaps faster."},
+					{"char_name": name, "upgrade_id": "linguis_damage",  "title": "Linguis — +20% Damage",     "description": "Harder hits."},
+					{"char_name": name, "upgrade_id": "linguis_range",   "title": "Linguis — +20% Range",      "description": "Longer reach."},
+					{"char_name": name, "upgrade_id": "linguis_crit",    "title": "Linguis — +5% Crit Chance", "description": "More crits."},
+					{"char_name": name, "upgrade_id": "linguis_critdmg", "title": "Linguis — +25% Crit Damage","description": "Bigger crits."}
+				]
+				pool_l.shuffle()
+				opts.append(pool_l[0])
+
 		else:
 			var pool_other: Array[Dictionary] = [
 				{"char_name": name, "upgrade_id": "generic_speed",  "title": name + " — +15% Move Speed", "description": "Reposition faster."},

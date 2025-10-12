@@ -6,7 +6,7 @@ extends Node2D
 @export var spawn_delay_decrease: float = 0.12
 @export var min_spawn_delay: float = 0.03
 @export var health_scale_per_room: float = 0.10
-@export var damage_scale_per_room: float = 0.08
+@export var damage_scale_per_room: float = 0.02
 @export var enemy_density_growth: float = 1.35
 @export var enemy_cap: int = 300
 
