@@ -13,8 +13,8 @@ extends "res://Scripts/base_character.gd"
 @export var frenzy_lifesteal: float = 0.15
 @export var frenzy_fury_cost: int = 100
 
-@export var fury_per_hit: int = 5
-@export var max_fury: int = 999
+@export var fury_per_hit: int = 2
+@export var max_fury: int = 100
 
 @export var swing_duration: float = 0.25
 @export var swing_half_width: float = 54.0
@@ -42,7 +42,7 @@ var ult_unlocked: bool = false
 
 func character_ready() -> void:
 	speed = 180.0
-	attack_range = 80.0
+	attack_range = 70.0
 	attack_cooldown = 1.0
 	damage = 7
 	health = 140
@@ -53,7 +53,7 @@ func character_ready() -> void:
 	base_damage = damage
 	base_speed = speed
 	base_cooldown = attack_cooldown
-	slam_timer = 0.5
+	slam_timer = 1
 	frenzy_timer = 0.0
 
 func update_ability_timers(delta: float) -> void:

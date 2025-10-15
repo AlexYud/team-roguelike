@@ -21,9 +21,9 @@ extends "res://Scripts/base_character.gd"
 @export var ember_radius_per_orb: float = 30
 @export var ember_cooldown: float = 8.0
 
-@export var ember_cost: int = 200
-@export var fury_per_hit: int = 5
-@export var max_fury: int = 999
+@export var ember_cost: int = 100
+@export var fury_per_hit: int = 2
+@export var max_fury: int = 100
 
 var bloom_timer: float = 0.0
 var bloom_active: bool = false
